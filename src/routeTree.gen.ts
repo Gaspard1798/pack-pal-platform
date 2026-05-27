@@ -18,6 +18,7 @@ import { Route as AuthenticatedPlanningRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedDemandesRouteImport } from './routes/_authenticated/demandes'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedChantiersRouteImport } from './routes/_authenticated/chantiers'
+import { Route as AuthenticatedChantiersIdRouteImport } from './routes/_authenticated/chantiers.$id'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
 
 const SignupRoute = SignupRouteImport.update({
@@ -64,6 +65,12 @@ const AuthenticatedChantiersRoute = AuthenticatedChantiersRouteImport.update({
   path: '/chantiers',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedChantiersIdRoute =
+  AuthenticatedChantiersIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedChantiersRoute,
+  } as any)
 const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
   id: '/admin/users',
   path: '/admin/users',
@@ -74,23 +81,25 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/chantiers': typeof AuthenticatedChantiersRoute
+  '/chantiers': typeof AuthenticatedChantiersRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/demandes': typeof AuthenticatedDemandesRoute
   '/planning': typeof AuthenticatedPlanningRoute
   '/terrain': typeof AuthenticatedTerrainRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/chantiers/$id': typeof AuthenticatedChantiersIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/chantiers': typeof AuthenticatedChantiersRoute
+  '/chantiers': typeof AuthenticatedChantiersRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/demandes': typeof AuthenticatedDemandesRoute
   '/planning': typeof AuthenticatedPlanningRoute
   '/terrain': typeof AuthenticatedTerrainRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/chantiers/$id': typeof AuthenticatedChantiersIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -98,12 +107,13 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/_authenticated/chantiers': typeof AuthenticatedChantiersRoute
+  '/_authenticated/chantiers': typeof AuthenticatedChantiersRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/demandes': typeof AuthenticatedDemandesRoute
   '/_authenticated/planning': typeof AuthenticatedPlanningRoute
   '/_authenticated/terrain': typeof AuthenticatedTerrainRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/_authenticated/chantiers/$id': typeof AuthenticatedChantiersIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/planning'
     | '/terrain'
     | '/admin/users'
+    | '/chantiers/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/planning'
     | '/terrain'
     | '/admin/users'
+    | '/chantiers/$id'
   id:
     | '__root__'
     | '/'
@@ -140,6 +152,7 @@ export interface FileRouteTypes {
     | '/_authenticated/planning'
     | '/_authenticated/terrain'
     | '/_authenticated/admin/users'
+    | '/_authenticated/chantiers/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -214,6 +227,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedChantiersRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/chantiers/$id': {
+      id: '/_authenticated/chantiers/$id'
+      path: '/$id'
+      fullPath: '/chantiers/$id'
+      preLoaderRoute: typeof AuthenticatedChantiersIdRouteImport
+      parentRoute: typeof AuthenticatedChantiersRoute
+    }
     '/_authenticated/admin/users': {
       id: '/_authenticated/admin/users'
       path: '/admin/users'
@@ -224,8 +244,22 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedChantiersRouteChildren {
+  AuthenticatedChantiersIdRoute: typeof AuthenticatedChantiersIdRoute
+}
+
+const AuthenticatedChantiersRouteChildren: AuthenticatedChantiersRouteChildren =
+  {
+    AuthenticatedChantiersIdRoute: AuthenticatedChantiersIdRoute,
+  }
+
+const AuthenticatedChantiersRouteWithChildren =
+  AuthenticatedChantiersRoute._addFileChildren(
+    AuthenticatedChantiersRouteChildren,
+  )
+
 interface AuthenticatedRouteChildren {
-  AuthenticatedChantiersRoute: typeof AuthenticatedChantiersRoute
+  AuthenticatedChantiersRoute: typeof AuthenticatedChantiersRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDemandesRoute: typeof AuthenticatedDemandesRoute
   AuthenticatedPlanningRoute: typeof AuthenticatedPlanningRoute
@@ -234,7 +268,7 @@ interface AuthenticatedRouteChildren {
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-  AuthenticatedChantiersRoute: AuthenticatedChantiersRoute,
+  AuthenticatedChantiersRoute: AuthenticatedChantiersRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDemandesRoute: AuthenticatedDemandesRoute,
   AuthenticatedPlanningRoute: AuthenticatedPlanningRoute,
