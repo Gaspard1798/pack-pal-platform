@@ -73,6 +73,7 @@ function ChantierDetail() {
         <TabsList>
           <TabsTrigger value="aires">Aires de livraison</TabsTrigger>
           <TabsTrigger value="materiel">Matériel</TabsTrigger>
+          <TabsTrigger value="prestataires">Prestataires</TabsTrigger>
         </TabsList>
         <TabsContent value="aires" className="mt-4">
           <AiresSection chantierId={id} canManage={isManager} />
@@ -80,7 +81,128 @@ function ChantierDetail() {
         <TabsContent value="materiel" className="mt-4">
           <MaterielsSection chantierId={id} canManage={isManager} />
         </TabsContent>
+        <TabsContent value="prestataires" className="mt-4">
+          <MembersSection chantierId={id} canManage={isManager} />
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+type Member = { id: string; user_id: string; role: string; email?: string; full_name?: string };
+
+function MembersSection({ chantierId, canManage }: { chantierId: string; canManage: boolean }) {
+  const [items, setItems] = useState<Member[]>([]);
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<"prestataire" | "operateur">("prestataire");
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    const { data: members, error } = await supabase
+      .from("chantier_members").select("*").eq("chantier_id", chantierId);
+    if (error) { toast.error(error.message); return; }
+    const list = (members ?? []) as Member[];
+    if (list.length) {
+      const ids = list.map((m) => m.user_id);
+      const { data: profs } = await supabase
+        .from("profiles").select("id,email,full_name").in("id", ids);
+      const byId = new Map((profs ?? []).map((p: any) => [p.id, p]));
+      list.forEach((m) => {
+        const p = byId.get(m.user_id) as any;
+        if (p) { m.email = p.email; m.full_name = p.full_name; }
+      });
+    }
+    setItems(list);
+  };
+  useEffect(() => { load(); }, [chantierId]);
+
+  const invite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    const { data: uid, error: lookupErr } = await supabase.rpc("find_user_id_by_email", { _email: email });
+    if (lookupErr) { setSaving(false); toast.error(lookupErr.message); return; }
+    if (!uid) { setSaving(false); toast.error("Aucun utilisateur avec cet email."); return; }
+    const { error } = await supabase.from("chantier_members").insert({
+      chantier_id: chantierId, user_id: uid as unknown as string, role: role as any,
+    });
+    setSaving(false);
+    if (error) toast.error(error.message);
+    else { setEmail(""); toast.success("Prestataire ajouté"); load(); }
+  };
+
+  const remove = async (mid: string) => {
+    const { error } = await supabase.from("chantier_members").delete().eq("id", mid);
+    if (error) toast.error(error.message); else { toast.success("Retiré"); load(); }
+  };
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[1fr,360px]">
+      <Card>
+        <CardHeader><CardTitle className="text-base">Membres ({items.length})</CardTitle></CardHeader>
+        <CardContent className="p-0">
+          {items.length === 0 ? (
+            <p className="p-6 text-sm text-muted-foreground">Aucun prestataire invité.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nom</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Rôle</TableHead>
+                  {canManage && <TableHead className="w-16" />}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((m) => (
+                  <TableRow key={m.id}>
+                    <TableCell className="font-medium">{m.full_name || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{m.email ?? "—"}</TableCell>
+                    <TableCell><Badge variant="secondary">{m.role}</Badge></TableCell>
+                    {canManage && (
+                      <TableCell>
+                        <Button variant="ghost" size="icon" onClick={() => remove(m.id)}>
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {canManage && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Inviter</CardTitle></CardHeader>
+          <CardContent>
+            <form onSubmit={invite} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="inv-email">Email *</Label>
+                <Input id="inv-email" type="email" value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="prestataire@exemple.com" required />
+                <p className="text-xs text-muted-foreground">
+                  La personne doit déjà avoir un compte sur la plate-forme.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="inv-role">Rôle sur le chantier</Label>
+                <select id="inv-role" value={role}
+                  onChange={(e) => setRole(e.target.value as any)}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+                  <option value="prestataire">Prestataire</option>
+                  <option value="operateur">Opérateur terrain</option>
+                </select>
+              </div>
+              <Button type="submit" disabled={saving || !email} className="w-full">
+                <Plus className="size-4" /> Inviter
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
