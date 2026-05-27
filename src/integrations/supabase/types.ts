@@ -358,6 +358,7 @@ export type Database = {
         Args: { _chantier_id: string; _user_id: string }
         Returns: boolean
       }
+      find_user_id_by_email: { Args: { _email: string }; Returns: string }
       get_user_roles: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"][]
