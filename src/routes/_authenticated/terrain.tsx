@@ -30,6 +30,7 @@ type Venue = {
   id: string; demande_id: string;
   arrivee_reelle: string | null; depart_reel: string | null;
   non_conformites: string[] | null; commentaire: string | null;
+  photos: string[] | null;
 };
 
 const NC_OPTIONS = [
