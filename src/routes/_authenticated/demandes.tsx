@@ -651,9 +651,8 @@ function NewDemandeDialog({
           <Textarea id="com" value={commentaire} onChange={(e) => setCommentaire(e.target.value)}
             maxLength={500} />
         </div>
-          <Button type="submit" disabled={saving || !chantierId || !nature || !debut || (aires.length > 0 && !aireId)}>
         <DialogFooter>
-          <Button type="submit" disabled={saving || !chantierId || !nature || !debut || (aires.length > 0 && !aireId) || (materiels.length > 0 && Object.keys(selectedMats).length === 0)}>
+          <Button type="submit" disabled={saving || !chantierId || !nature || !debut || (aires.length > 0 && !aireId)}>
 
             {saving ? "Envoi…" : "Envoyer la demande"}
           </Button>
