@@ -6,7 +6,7 @@ import { Truck, Calendar, Wrench, ShieldCheck, ArrowRight, HardHat } from "lucid
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ChantierFlow — La logistique de chantier sans conflit" },
+      { title: "Fluxop — La logistique de chantier sans conflit" },
       { name: "description", content: "Planifiez livraisons et extractions, organisez aires et matériel, suivez le terrain en temps réel." },
     ],
   }),
@@ -23,7 +23,7 @@ function Landing() {
             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-accent text-accent-foreground">
               <HardHat className="h-5 w-5" />
             </div>
-            <span className="font-display text-lg font-semibold">ChantierFlow</span>
+            <span className="font-display text-lg font-semibold">Fluxop</span>
           </Link>
           <nav className="flex items-center gap-3">
             <Link to="/login">
@@ -81,7 +81,7 @@ function Landing() {
 
       <footer className="border-t border-border/60 py-8">
         <div className="mx-auto max-w-7xl px-6 text-sm text-muted-foreground">
-          © {new Date().getFullYear()} ChantierFlow
+          © {new Date().getFullYear()} Fluxop
         </div>
       </footer>
     </div>

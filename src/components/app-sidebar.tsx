@@ -34,7 +34,7 @@ export function AppSidebar() {
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-accent text-accent-foreground">
             <HardHat className="h-4 w-4" />
           </div>
-          {!collapsed && <span className="font-display font-semibold text-sidebar-foreground">ChantierFlow</span>}
+          {!collapsed && <span className="font-display font-semibold text-sidebar-foreground">Fluxop</span>}
         </div>
       </SidebarHeader>
       <SidebarContent>

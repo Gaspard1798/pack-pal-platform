@@ -20,7 +20,7 @@ const schema = z.object({
 });
 
 export const Route = createFileRoute("/signup")({
-  head: () => ({ meta: [{ title: "Créer un compte — ChantierFlow" }] }),
+  head: () => ({ meta: [{ title: "Créer un compte — Fluxop" }] }),
   component: SignupPage,
 });
 
@@ -58,7 +58,7 @@ function SignupPage() {
       <div className="w-full max-w-md">
         <Link to="/" className="mb-6 flex items-center justify-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-md bg-accent text-accent-foreground"><HardHat className="h-5 w-5" /></div>
-          <span className="font-display text-lg font-semibold">ChantierFlow</span>
+          <span className="font-display text-lg font-semibold">Fluxop</span>
         </Link>
         <Card className="p-6">
           <h1 className="font-display text-2xl font-semibold">Créer un compte</h1>
