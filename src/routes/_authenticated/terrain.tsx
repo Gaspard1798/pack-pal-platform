@@ -242,13 +242,14 @@ function DemandeCard({
                   <Badge key={nc} variant="destructive" className="text-[10px]">{nc}</Badge>
                 ))}
               </div>
+            )}
             {venue?.commentaire && <div className="italic pt-1">"{venue.commentaire}"</div>}
             {venue?.photos && venue.photos.length > 0 && (
               <VenuePhotos paths={venue.photos} />
             )}
           </div>
         )}
-        )}
+
 
         <div className="flex flex-wrap gap-2">
           {!arrived && (
