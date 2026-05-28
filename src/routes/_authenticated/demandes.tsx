@@ -462,6 +462,10 @@ function NewDemandeDialog({
       toast.error("Veuillez sélectionner une aire de livraison.");
       return;
     }
+    if (materiels.length > 0 && Object.keys(selectedMats).length === 0) {
+      toast.error("Veuillez sélectionner le matériel nécessaire au déchargement.");
+      return;
+    }
     setSaving(true);
     const { data: created, error } = await supabase.from("demandes").insert({
       chantier_id: chantierId,
