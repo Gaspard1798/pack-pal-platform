@@ -357,6 +357,7 @@ export type Database = {
           enregistre_par: string | null
           id: string
           non_conformites: string[] | null
+          photos: string[] | null
         }
         Insert: {
           arrivee_reelle?: string | null
@@ -367,6 +368,7 @@ export type Database = {
           enregistre_par?: string | null
           id?: string
           non_conformites?: string[] | null
+          photos?: string[] | null
         }
         Update: {
           arrivee_reelle?: string | null
@@ -377,6 +379,7 @@ export type Database = {
           enregistre_par?: string | null
           id?: string
           non_conformites?: string[] | null
+          photos?: string[] | null
         }
         Relationships: [
           {

@@ -13,7 +13,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Clock, LogIn, LogOut, AlertTriangle, MapPin } from "lucide-react";
+import { Clock, LogIn, LogOut, AlertTriangle, MapPin, ImagePlus, X, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/terrain")({
   component: TerrainPage,
@@ -30,6 +30,7 @@ type Venue = {
   id: string; demande_id: string;
   arrivee_reelle: string | null; depart_reel: string | null;
   non_conformites: string[] | null; commentaire: string | null;
+  photos: string[] | null;
 };
 
 const NC_OPTIONS = [
@@ -243,8 +244,12 @@ function DemandeCard({
               </div>
             )}
             {venue?.commentaire && <div className="italic pt-1">"{venue.commentaire}"</div>}
+            {venue?.photos && venue.photos.length > 0 && (
+              <VenuePhotos paths={venue.photos} />
+            )}
           </div>
         )}
+
 
         <div className="flex flex-wrap gap-2">
           {!arrived && (
@@ -269,29 +274,59 @@ function NonConformiteDialog({
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string[]>(venue?.non_conformites ?? []);
   const [commentaire, setCommentaire] = useState(venue?.commentaire ?? "");
+  const [existing, setExisting] = useState<string[]>(venue?.photos ?? []);
+  const [removed, setRemoved] = useState<string[]>([]);
+  const [newFiles, setNewFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
       setSelected(venue?.non_conformites ?? []);
       setCommentaire(venue?.commentaire ?? "");
+      setExisting(venue?.photos ?? []);
+      setRemoved([]);
+      setNewFiles([]);
     }
   }, [open, venue]);
 
   const toggle = (nc: string, checked: boolean) =>
     setSelected((prev) => checked ? [...prev, nc] : prev.filter((x) => x !== nc));
 
+  const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []).filter((f) => f.type.startsWith("image/"));
+    setNewFiles((prev) => [...prev, ...files]);
+    e.target.value = "";
+  };
+
   const save = async () => {
     setSaving(true);
+
+    // 1. remove deleted photos from storage
+    if (removed.length > 0) {
+      await supabase.storage.from("venue-photos").remove(removed);
+    }
+
+    // 2. upload new files
+    const uploadedPaths: string[] = [];
+    for (const file of newFiles) {
+      const ext = file.name.split(".").pop() ?? "jpg";
+      const path = `${demandeId}/${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("venue-photos").upload(path, file);
+      if (upErr) { setSaving(false); return toast.error(`Photo : ${upErr.message}`); }
+      uploadedPaths.push(path);
+    }
+
+    const photos = [...existing, ...uploadedPaths];
+
     if (venue) {
       const { error } = await supabase.from("venues")
-        .update({ non_conformites: selected, commentaire: commentaire || null, enregistre_par: user?.id })
+        .update({ non_conformites: selected, commentaire: commentaire || null, photos, enregistre_par: user?.id })
         .eq("id", venue.id);
       if (error) { setSaving(false); return toast.error(error.message); }
     } else {
       const { error } = await supabase.from("venues").insert({
         demande_id: demandeId, non_conformites: selected,
-        commentaire: commentaire || null, enregistre_par: user?.id,
+        commentaire: commentaire || null, photos, enregistre_par: user?.id,
       });
       if (error) { setSaving(false); return toast.error(error.message); }
     }
@@ -301,6 +336,13 @@ function NonConformiteDialog({
     onSaved();
   };
 
+  const removeExisting = (path: string) => {
+    setExisting((prev) => prev.filter((p) => p !== path));
+    setRemoved((prev) => [...prev, path]);
+  };
+
+  const photoCount = (venue?.photos?.length ?? 0);
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -309,7 +351,7 @@ function NonConformiteDialog({
           {venue?.non_conformites?.length ? `NC (${venue.non_conformites.length})` : "Non-conformité"}
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Compte-rendu / Non-conformités</DialogTitle>
         </DialogHeader>
@@ -329,12 +371,84 @@ function NonConformiteDialog({
               onChange={(e) => setCommentaire(e.target.value)}
               placeholder="Détails, observations…" />
           </div>
+
+          <div className="space-y-2">
+            <Label>Photos {photoCount > 0 && `(${photoCount} enregistrée${photoCount > 1 ? "s" : ""})`}</Label>
+            <div className="flex flex-wrap gap-2">
+              {existing.map((path) => (
+                <ThumbWithRemove key={path} path={path} onRemove={() => removeExisting(path)} />
+              ))}
+              {newFiles.map((file, i) => (
+                <div key={i} className="relative h-20 w-20 overflow-hidden rounded-md border">
+                  <img src={URL.createObjectURL(file)} alt="" className="h-full w-full object-cover" />
+                  <button type="button"
+                    onClick={() => setNewFiles((prev) => prev.filter((_, j) => j !== i))}
+                    className="absolute right-0.5 top-0.5 rounded-full bg-background/80 p-0.5">
+                    <X className="size-3" />
+                  </button>
+                </div>
+              ))}
+              <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed text-muted-foreground hover:bg-muted/50">
+                <ImagePlus className="size-5" />
+                <span className="text-[10px]">Ajouter</span>
+                <input type="file" accept="image/*" multiple capture="environment"
+                  className="hidden" onChange={onPick} />
+              </label>
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>Annuler</Button>
-          <Button onClick={save} disabled={saving}>Enregistrer</Button>
+          <Button onClick={save} disabled={saving}>
+            {saving && <Loader2 className="size-4 animate-spin" />}
+            Enregistrer
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
+function useSignedUrl(path: string) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    supabase.storage.from("venue-photos").createSignedUrl(path, 3600).then(({ data }) => {
+      if (active) setUrl(data?.signedUrl ?? null);
+    });
+    return () => { active = false; };
+  }, [path]);
+  return url;
+}
+
+function ThumbWithRemove({ path, onRemove }: { path: string; onRemove: () => void }) {
+  const url = useSignedUrl(path);
+  return (
+    <div className="relative h-20 w-20 overflow-hidden rounded-md border bg-muted">
+      {url && <img src={url} alt="" className="h-full w-full object-cover" />}
+      <button type="button" onClick={onRemove}
+        className="absolute right-0.5 top-0.5 rounded-full bg-background/80 p-0.5">
+        <X className="size-3" />
+      </button>
+    </div>
+  );
+}
+
+function VenuePhotos({ paths }: { paths: string[] }) {
+  return (
+    <div className="flex flex-wrap gap-1.5 pt-1.5">
+      {paths.map((p) => <VenuePhotoThumb key={p} path={p} />)}
+    </div>
+  );
+}
+
+function VenuePhotoThumb({ path }: { path: string }) {
+  const url = useSignedUrl(path);
+  if (!url) return <div className="h-14 w-14 rounded border bg-muted" />;
+  return (
+    <a href={url} target="_blank" rel="noreferrer" className="block h-14 w-14 overflow-hidden rounded border">
+      <img src={url} alt="Photo terrain" className="h-full w-full object-cover" loading="lazy" />
+    </a>
+  );
+}
+
