@@ -24,7 +24,8 @@ import { Plus, Check, X, CheckCircle2, Pencil } from "lucide-react";
 type Statut = "en_cours" | "acceptee" | "refusee" | "modifiee" | "terminee" | "annulee";
 
 type Chantier = { id: string; nom: string };
-type Aire = { id: string; nom: string; chantier_id: string };
+type Aire = { id: string; nom: string; chantier_id: string; capacite?: number };
+type OccSlot = { id: string; aire_id: string | null; debut: string; duree_min: number; nature: string; statut: string };
 type Materiel = { id: string; nom: string; type: string | null; quantite: number; chantier_id: string };
 type Demande = {
   id: string;
