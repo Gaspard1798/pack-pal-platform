@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -24,6 +25,7 @@ type Statut = "en_cours" | "acceptee" | "refusee" | "modifiee" | "terminee" | "a
 
 type Chantier = { id: string; nom: string };
 type Aire = { id: string; nom: string; chantier_id: string };
+type Materiel = { id: string; nom: string; type: string | null; quantite: number; chantier_id: string };
 type Demande = {
   id: string;
   chantier_id: string;
@@ -252,6 +254,8 @@ function NewDemandeDialog({
   const [chantierId, setChantierId] = useState<string>("");
   const [aires, setAires] = useState<Aire[]>([]);
   const [aireId, setAireId] = useState<string>("");
+  const [materiels, setMateriels] = useState<Materiel[]>([]);
+  const [selectedMats, setSelectedMats] = useState<Record<string, number>>({});
   const [nature, setNature] = useState("");
   const [quantite, setQuantite] = useState<string>("");
   const [unite, setUnite] = useState("");
@@ -261,16 +265,37 @@ function NewDemandeDialog({
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!chantierId) { setAires([]); setAireId(""); return; }
+    if (!chantierId) {
+      setAires([]); setAireId(""); setMateriels([]); setSelectedMats({});
+      return;
+    }
     supabase.from("aires").select("id, nom, chantier_id").eq("chantier_id", chantierId)
       .order("nom").then(({ data }) => setAires((data ?? []) as Aire[]));
+    supabase.from("materiels").select("id, nom, type, quantite, chantier_id").eq("chantier_id", chantierId)
+      .order("nom").then(({ data }) => {
+        setMateriels((data ?? []) as Materiel[]);
+        setSelectedMats({});
+      });
   }, [chantierId]);
+
+  const toggleMat = (id: string, checked: boolean) => {
+    setSelectedMats((prev) => {
+      const next = { ...prev };
+      if (checked) next[id] = next[id] ?? 1;
+      else delete next[id];
+      return next;
+    });
+  };
+
+  const setMatQty = (id: string, q: number) => {
+    setSelectedMats((prev) => ({ ...prev, [id]: q }));
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chantierId || !nature || !debut) return;
     setSaving(true);
-    const { error } = await supabase.from("demandes").insert({
+    const { data: created, error } = await supabase.from("demandes").insert({
       chantier_id: chantierId,
       prestataire_id: userId,
       aire_id: aireId || null,
@@ -280,14 +305,29 @@ function NewDemandeDialog({
       debut: new Date(debut).toISOString(),
       duree_min: duree,
       commentaire: commentaire || null,
-    });
+    }).select("id").single();
+
+    if (error || !created) {
+      setSaving(false);
+      toast.error(error?.message ?? "Erreur");
+      return;
+    }
+
+    const matRows = Object.entries(selectedMats)
+      .filter(([, q]) => q > 0)
+      .map(([materiel_id, q]) => ({ demande_id: created.id, materiel_id, quantite: q }));
+    if (matRows.length > 0) {
+      const { error: mErr } = await supabase.from("demande_materiels").insert(matRows);
+      if (mErr) toast.error(`Matériel : ${mErr.message}`);
+    }
+
     setSaving(false);
-    if (error) toast.error(error.message);
-    else { toast.success("Demande envoyée"); onCreated(); }
+    toast.success("Demande envoyée");
+    onCreated();
   };
 
   return (
-    <DialogContent className="max-w-lg">
+    <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
       <DialogHeader><DialogTitle>Nouvelle demande de créneau</DialogTitle></DialogHeader>
       <form onSubmit={submit} className="space-y-4">
         <div className="space-y-2">
@@ -343,6 +383,42 @@ function NewDemandeDialog({
               onChange={(e) => setDuree(parseInt(e.target.value) || 0)} required />
           </div>
         </div>
+
+        {materiels.length > 0 && (
+          <div className="space-y-2">
+            <Label>Matériel nécessaire</Label>
+            <div className="space-y-2 rounded-md border p-3">
+              {materiels.map((m) => {
+                const checked = m.id in selectedMats;
+                return (
+                  <div key={m.id} className="flex items-center gap-3">
+                    <Checkbox
+                      id={`mat-${m.id}`}
+                      checked={checked}
+                      onCheckedChange={(c) => toggleMat(m.id, !!c)}
+                    />
+                    <label htmlFor={`mat-${m.id}`} className="flex-1 text-sm cursor-pointer">
+                      {m.nom}
+                      <span className="ml-1 text-xs text-muted-foreground">
+                        (dispo {m.quantite}{m.type ? ` · ${m.type}` : ""})
+                      </span>
+                    </label>
+                    {checked && (
+                      <Input
+                        type="number"
+                        min={1}
+                        max={m.quantite}
+                        value={selectedMats[m.id]}
+                        onChange={(e) => setMatQty(m.id, parseInt(e.target.value) || 1)}
+                        className="h-8 w-20"
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="com">Commentaire</Label>
