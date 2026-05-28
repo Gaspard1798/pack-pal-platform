@@ -462,10 +462,8 @@ function NewDemandeDialog({
       toast.error("Veuillez sélectionner une aire de livraison.");
       return;
     }
-    if (materiels.length > 0 && Object.keys(selectedMats).length === 0) {
-      toast.error("Veuillez sélectionner le matériel nécessaire au déchargement.");
-      return;
-    }
+
+
     setSaving(true);
     const { data: created, error } = await supabase.from("demandes").insert({
       chantier_id: chantierId,
@@ -612,7 +610,7 @@ function NewDemandeDialog({
           </div>
         )}
 
-        {materiels.length > 0 && (
+            <Label>Matériel nécessaire au déchargement (optionnel)</Label>
           <div className="space-y-2">
             <Label>Matériel nécessaire au déchargement *</Label>
             <div className="space-y-2 rounded-md border p-3">
@@ -653,7 +651,7 @@ function NewDemandeDialog({
           <Textarea id="com" value={commentaire} onChange={(e) => setCommentaire(e.target.value)}
             maxLength={500} />
         </div>
-
+          <Button type="submit" disabled={saving || !chantierId || !nature || !debut || (aires.length > 0 && !aireId)}>
         <DialogFooter>
           <Button type="submit" disabled={saving || !chantierId || !nature || !debut || (aires.length > 0 && !aireId) || (materiels.length > 0 && Object.keys(selectedMats).length === 0)}>
 
