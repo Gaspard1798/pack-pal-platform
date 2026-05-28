@@ -653,7 +653,8 @@ function NewDemandeDialog({
         </div>
 
         <DialogFooter>
-          <Button type="submit" disabled={saving || !chantierId || !nature || !debut || (aires.length > 0 && !aireId)}>
+          <Button type="submit" disabled={saving || !chantierId || !nature || !debut || (aires.length > 0 && !aireId) || (materiels.length > 0 && Object.keys(selectedMats).length === 0)}>
+
             {saving ? "Envoi…" : "Envoyer la demande"}
           </Button>
         </DialogFooter>
