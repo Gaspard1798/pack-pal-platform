@@ -24,7 +24,8 @@ import { Plus, Check, X, CheckCircle2, Pencil } from "lucide-react";
 type Statut = "en_cours" | "acceptee" | "refusee" | "modifiee" | "terminee" | "annulee";
 
 type Chantier = { id: string; nom: string };
-type Aire = { id: string; nom: string; chantier_id: string };
+type Aire = { id: string; nom: string; chantier_id: string; capacite?: number };
+type OccSlot = { id: string; aire_id: string | null; debut: string; duree_min: number; nature: string; statut: string };
 type Materiel = { id: string; nom: string; type: string | null; quantite: number; chantier_id: string };
 type Demande = {
   id: string;
@@ -371,13 +372,14 @@ function NewDemandeDialog({
   const [duree, setDuree] = useState(60);
   const [commentaire, setCommentaire] = useState("");
   const [saving, setSaving] = useState(false);
+  const [occupied, setOccupied] = useState<OccSlot[]>([]);
 
   useEffect(() => {
     if (!chantierId) {
       setAires([]); setAireId(""); setMateriels([]); setSelectedMats({});
       return;
     }
-    supabase.from("aires").select("id, nom, chantier_id").eq("chantier_id", chantierId)
+    supabase.from("aires").select("id, nom, chantier_id, capacite").eq("chantier_id", chantierId)
       .order("nom").then(({ data }) => setAires((data ?? []) as Aire[]));
     supabase.from("materiels").select("id, nom, type, quantite, chantier_id").eq("chantier_id", chantierId)
       .order("nom").then(({ data }) => {
@@ -385,6 +387,28 @@ function NewDemandeDialog({
         setSelectedMats({});
       });
   }, [chantierId]);
+
+  // Charge les créneaux déjà réservés (actifs) du chantier pour le jour choisi.
+  useEffect(() => {
+    if (!chantierId || !debut) { setOccupied([]); return; }
+    const day = new Date(debut);
+    const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+    const dayEnd = new Date(dayStart.getTime() + 24 * 3600 * 1000);
+    supabase.from("demandes")
+      .select("id, aire_id, debut, duree_min, nature, statut")
+      .eq("chantier_id", chantierId)
+      .in("statut", ["en_cours", "acceptee", "modifiee"])
+      .gte("debut", new Date(dayStart.getTime() - 24 * 3600 * 1000).toISOString())
+      .lt("debut", dayEnd.toISOString())
+      .order("debut")
+      .then(({ data }) => {
+        const items = ((data ?? []) as OccSlot[]).filter((d) => {
+          const s = new Date(d.debut).getTime();
+          return s >= dayStart.getTime() - 12 * 3600 * 1000 && s < dayEnd.getTime();
+        });
+        setOccupied(items);
+      });
+  }, [chantierId, debut]);
 
   const toggleMat = (id: string, checked: boolean) => {
     setSelectedMats((prev) => {
@@ -398,6 +422,38 @@ function NewDemandeDialog({
   const setMatQty = (id: string, q: number) => {
     setSelectedMats((prev) => ({ ...prev, [id]: q }));
   };
+
+  // Créneaux occupés sur l'aire sélectionnée + détection de conflit pour le créneau saisi.
+  const sameAireOccupied = useMemo(
+    () => occupied.filter((o) => aireId && o.aire_id === aireId),
+    [occupied, aireId],
+  );
+
+  const conflict = useMemo(() => {
+    if (!aireId || !debut || !duree) return null;
+    const s = new Date(debut).getTime();
+    const e = s + duree * 60000;
+    const overlapping = sameAireOccupied.filter((o) => {
+      const os = new Date(o.debut).getTime();
+      const oe = os + o.duree_min * 60000;
+      return s < oe && os < e;
+    });
+    if (overlapping.length === 0) return null;
+    const cap = aires.find((a) => a.id === aireId)?.capacite ?? 1;
+    if (overlapping.length + 1 > cap) {
+      return { overlapping, cap };
+    }
+    return null;
+  }, [aireId, debut, duree, sameAireOccupied, aires]);
+
+  // Propose le prochain créneau libre après le dernier conflit.
+  const suggestion = useMemo(() => {
+    if (!conflict) return null;
+    const latestEnd = Math.max(
+      ...conflict.overlapping.map((o) => new Date(o.debut).getTime() + o.duree_min * 60000),
+    );
+    return new Date(latestEnd);
+  }, [conflict]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -491,6 +547,60 @@ function NewDemandeDialog({
               onChange={(e) => setDuree(parseInt(e.target.value) || 0)} required />
           </div>
         </div>
+
+        {aireId && debut && (
+          <div className="space-y-2 rounded-md border p-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs text-muted-foreground">
+                Créneaux déjà réservés sur cette aire ce jour-là
+              </Label>
+              <Badge variant="outline" className="text-xs">
+                Capacité {aires.find((a) => a.id === aireId)?.capacite ?? 1}
+              </Badge>
+            </div>
+            {sameAireOccupied.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Aucun créneau réservé — l'aire est libre.</p>
+            ) : (
+              <div className="space-y-1">
+                {sameAireOccupied.map((o) => {
+                  const s = new Date(o.debut);
+                  const e = new Date(s.getTime() + o.duree_min * 60000);
+                  const fmt = (x: Date) => x.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+                  const isClash = conflict?.overlapping.some((c) => c.id === o.id);
+                  return (
+                    <div key={o.id}
+                      className={`flex items-center justify-between rounded px-2 py-1 text-xs ${
+                        isClash
+                          ? "bg-destructive/10 text-destructive line-through"
+                          : "bg-muted text-muted-foreground"
+                      }`}>
+                      <span>{fmt(s)} – {fmt(e)}</span>
+                      <span className="truncate pl-2">{o.nature}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {conflict && (
+              <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
+                <X className="size-3.5 mt-0.5 shrink-0" />
+                <div>
+                  Ce créneau dépasse la capacité de l'aire ({conflict.overlapping.length + 1}/{conflict.cap}).
+                  {suggestion && (
+                    <button type="button"
+                      className="ml-1 underline underline-offset-2"
+                      onClick={() => {
+                        const off = suggestion.getTimezoneOffset() * 60000;
+                        setDebut(new Date(suggestion.getTime() - off).toISOString().slice(0, 16));
+                      }}>
+                      Proposer {suggestion.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {materiels.length > 0 && (
           <div className="space-y-2">
