@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -28,11 +28,16 @@ export const Route = createFileRoute("/_authenticated/chantiers")({
 });
 
 function ChantiersPage() {
+  const matchId = Route.useMatch({ select: (match) => (match.params as { id?: string }).id });
   const { user, roles } = useAuth();
   const [items, setItems] = useState<Chantier[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const isConducteur = roles.includes("conducteur") || roles.includes("admin");
+
+  if (matchId) {
+    return <Outlet />;
+  }
 
   const load = async () => {
     setLoading(true);

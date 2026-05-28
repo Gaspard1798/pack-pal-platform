@@ -557,7 +557,8 @@ function NewDemandeDialog({
         </div>
 
         {aireId && debut && (
-          <div className="space-y-2 rounded-md border p-3">
+          <div className="space-y-2">
+            <div className="rounded-md border p-3">
             <div className="flex items-center justify-between">
               <Label className="text-xs text-muted-foreground">
                 Créneaux déjà réservés sur cette aire ce jour-là
@@ -607,6 +608,7 @@ function NewDemandeDialog({
                 </div>
               </div>
             )}
+            </div>
           </div>
         )}
 
