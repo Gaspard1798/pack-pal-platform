@@ -606,9 +606,9 @@ function NewDemandeDialog({
                   )}
                 </div>
               </div>
-            )}
-          </div>
-        )}
+        {materiels.length > 0 && (
+          <div className="space-y-2">
+            <Label>Matériel nécessaire au déchargement *</Label>
 
         {materiels.length > 0 && (
           <div className="space-y-2">
