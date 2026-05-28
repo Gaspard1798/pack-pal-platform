@@ -458,6 +458,10 @@ function NewDemandeDialog({
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chantierId || !nature || !debut) return;
+    if (aires.length > 0 && !aireId) {
+      toast.error("Veuillez sélectionner une aire de livraison.");
+      return;
+    }
     setSaving(true);
     const { data: created, error } = await supabase.from("demandes").insert({
       chantier_id: chantierId,
@@ -506,9 +510,9 @@ function NewDemandeDialog({
 
         {aires.length > 0 && (
           <div className="space-y-2">
-            <Label>Aire de livraison</Label>
+            <Label>Aire de livraison *</Label>
             <Select value={aireId} onValueChange={setAireId}>
-              <SelectTrigger><SelectValue placeholder="Optionnel" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Sélectionner une aire…" /></SelectTrigger>
               <SelectContent>
                 {aires.map((a) => <SelectItem key={a.id} value={a.id}>{a.nom}</SelectItem>)}
               </SelectContent>
@@ -645,7 +649,7 @@ function NewDemandeDialog({
         </div>
 
         <DialogFooter>
-          <Button type="submit" disabled={saving || !chantierId || !nature || !debut}>
+          <Button type="submit" disabled={saving || !chantierId || !nature || !debut || (aires.length > 0 && !aireId)}>
             {saving ? "Envoi…" : "Envoyer la demande"}
           </Button>
         </DialogFooter>
