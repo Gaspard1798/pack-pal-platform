@@ -506,9 +506,9 @@ function NewDemandeDialog({
 
         {aires.length > 0 && (
           <div className="space-y-2">
-            <Label>Aire de livraison</Label>
+            <Label>Aire de livraison *</Label>
             <Select value={aireId} onValueChange={setAireId}>
-              <SelectTrigger><SelectValue placeholder="Optionnel" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Sélectionner une aire…" /></SelectTrigger>
               <SelectContent>
                 {aires.map((a) => <SelectItem key={a.id} value={a.id}>{a.nom}</SelectItem>)}
               </SelectContent>
