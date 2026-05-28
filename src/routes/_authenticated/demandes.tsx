@@ -548,6 +548,60 @@ function NewDemandeDialog({
           </div>
         </div>
 
+        {aireId && debut && (
+          <div className="space-y-2 rounded-md border p-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs text-muted-foreground">
+                Créneaux déjà réservés sur cette aire ce jour-là
+              </Label>
+              <Badge variant="outline" className="text-xs">
+                Capacité {aires.find((a) => a.id === aireId)?.capacite ?? 1}
+              </Badge>
+            </div>
+            {sameAireOccupied.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Aucun créneau réservé — l'aire est libre.</p>
+            ) : (
+              <div className="space-y-1">
+                {sameAireOccupied.map((o) => {
+                  const s = new Date(o.debut);
+                  const e = new Date(s.getTime() + o.duree_min * 60000);
+                  const fmt = (x: Date) => x.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+                  const isClash = conflict?.overlapping.some((c) => c.id === o.id);
+                  return (
+                    <div key={o.id}
+                      className={`flex items-center justify-between rounded px-2 py-1 text-xs ${
+                        isClash
+                          ? "bg-destructive/10 text-destructive line-through"
+                          : "bg-muted text-muted-foreground"
+                      }`}>
+                      <span>{fmt(s)} – {fmt(e)}</span>
+                      <span className="truncate pl-2">{o.nature}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {conflict && (
+              <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
+                <X className="size-3.5 mt-0.5 shrink-0" />
+                <div>
+                  Ce créneau dépasse la capacité de l'aire ({conflict.overlapping.length + 1}/{conflict.cap}).
+                  {suggestion && (
+                    <button type="button"
+                      className="ml-1 underline underline-offset-2"
+                      onClick={() => {
+                        const off = suggestion.getTimezoneOffset() * 60000;
+                        setDebut(new Date(suggestion.getTime() - off).toISOString().slice(0, 16));
+                      }}>
+                      Proposer {suggestion.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {materiels.length > 0 && (
           <div className="space-y-2">
             <Label>Matériel nécessaire</Label>
