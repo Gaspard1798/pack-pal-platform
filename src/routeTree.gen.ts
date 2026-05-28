@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedTerrainRouteImport } from './routes/_authenticated/terrain'
+import { Route as AuthenticatedStatistiquesRouteImport } from './routes/_authenticated/statistiques'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedPlanningRouteImport } from './routes/_authenticated/planning'
 import { Route as AuthenticatedDemandesRouteImport } from './routes/_authenticated/demandes'
@@ -46,6 +47,12 @@ const AuthenticatedTerrainRoute = AuthenticatedTerrainRouteImport.update({
   path: '/terrain',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedStatistiquesRoute =
+  AuthenticatedStatistiquesRouteImport.update({
+    id: '/statistiques',
+    path: '/statistiques',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -92,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/demandes': typeof AuthenticatedDemandesRoute
   '/planning': typeof AuthenticatedPlanningRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/statistiques': typeof AuthenticatedStatistiquesRoute
   '/terrain': typeof AuthenticatedTerrainRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/chantiers/$id': typeof AuthenticatedChantiersIdRoute
@@ -105,6 +113,7 @@ export interface FileRoutesByTo {
   '/demandes': typeof AuthenticatedDemandesRoute
   '/planning': typeof AuthenticatedPlanningRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/statistiques': typeof AuthenticatedStatistiquesRoute
   '/terrain': typeof AuthenticatedTerrainRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/chantiers/$id': typeof AuthenticatedChantiersIdRoute
@@ -120,6 +129,7 @@ export interface FileRoutesById {
   '/_authenticated/demandes': typeof AuthenticatedDemandesRoute
   '/_authenticated/planning': typeof AuthenticatedPlanningRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/statistiques': typeof AuthenticatedStatistiquesRoute
   '/_authenticated/terrain': typeof AuthenticatedTerrainRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/chantiers/$id': typeof AuthenticatedChantiersIdRoute
@@ -135,6 +145,7 @@ export interface FileRouteTypes {
     | '/demandes'
     | '/planning'
     | '/profile'
+    | '/statistiques'
     | '/terrain'
     | '/admin/users'
     | '/chantiers/$id'
@@ -148,6 +159,7 @@ export interface FileRouteTypes {
     | '/demandes'
     | '/planning'
     | '/profile'
+    | '/statistiques'
     | '/terrain'
     | '/admin/users'
     | '/chantiers/$id'
@@ -162,6 +174,7 @@ export interface FileRouteTypes {
     | '/_authenticated/demandes'
     | '/_authenticated/planning'
     | '/_authenticated/profile'
+    | '/_authenticated/statistiques'
     | '/_authenticated/terrain'
     | '/_authenticated/admin/users'
     | '/_authenticated/chantiers/$id'
@@ -209,6 +222,13 @@ declare module '@tanstack/react-router' {
       path: '/terrain'
       fullPath: '/terrain'
       preLoaderRoute: typeof AuthenticatedTerrainRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/statistiques': {
+      id: '/_authenticated/statistiques'
+      path: '/statistiques'
+      fullPath: '/statistiques'
+      preLoaderRoute: typeof AuthenticatedStatistiquesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/profile': {
@@ -283,6 +303,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedDemandesRoute: typeof AuthenticatedDemandesRoute
   AuthenticatedPlanningRoute: typeof AuthenticatedPlanningRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+  AuthenticatedStatistiquesRoute: typeof AuthenticatedStatistiquesRoute
   AuthenticatedTerrainRoute: typeof AuthenticatedTerrainRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
 }
@@ -293,6 +314,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDemandesRoute: AuthenticatedDemandesRoute,
   AuthenticatedPlanningRoute: AuthenticatedPlanningRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+  AuthenticatedStatistiquesRoute: AuthenticatedStatistiquesRoute,
   AuthenticatedTerrainRoute: AuthenticatedTerrainRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
 }
@@ -310,3 +332,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
