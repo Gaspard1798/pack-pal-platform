@@ -372,13 +372,14 @@ function NewDemandeDialog({
   const [duree, setDuree] = useState(60);
   const [commentaire, setCommentaire] = useState("");
   const [saving, setSaving] = useState(false);
+  const [occupied, setOccupied] = useState<OccSlot[]>([]);
 
   useEffect(() => {
     if (!chantierId) {
       setAires([]); setAireId(""); setMateriels([]); setSelectedMats({});
       return;
     }
-    supabase.from("aires").select("id, nom, chantier_id").eq("chantier_id", chantierId)
+    supabase.from("aires").select("id, nom, chantier_id, capacite").eq("chantier_id", chantierId)
       .order("nom").then(({ data }) => setAires((data ?? []) as Aire[]));
     supabase.from("materiels").select("id, nom, type, quantite, chantier_id").eq("chantier_id", chantierId)
       .order("nom").then(({ data }) => {
@@ -386,6 +387,28 @@ function NewDemandeDialog({
         setSelectedMats({});
       });
   }, [chantierId]);
+
+  // Charge les créneaux déjà réservés (actifs) du chantier pour le jour choisi.
+  useEffect(() => {
+    if (!chantierId || !debut) { setOccupied([]); return; }
+    const day = new Date(debut);
+    const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+    const dayEnd = new Date(dayStart.getTime() + 24 * 3600 * 1000);
+    supabase.from("demandes")
+      .select("id, aire_id, debut, duree_min, nature, statut")
+      .eq("chantier_id", chantierId)
+      .in("statut", ["en_cours", "acceptee", "modifiee"])
+      .gte("debut", new Date(dayStart.getTime() - 24 * 3600 * 1000).toISOString())
+      .lt("debut", dayEnd.toISOString())
+      .order("debut")
+      .then(({ data }) => {
+        const items = ((data ?? []) as OccSlot[]).filter((d) => {
+          const s = new Date(d.debut).getTime();
+          return s >= dayStart.getTime() - 12 * 3600 * 1000 && s < dayEnd.getTime();
+        });
+        setOccupied(items);
+      });
+  }, [chantierId, debut]);
 
   const toggleMat = (id: string, checked: boolean) => {
     setSelectedMats((prev) => {
@@ -399,6 +422,38 @@ function NewDemandeDialog({
   const setMatQty = (id: string, q: number) => {
     setSelectedMats((prev) => ({ ...prev, [id]: q }));
   };
+
+  // Créneaux occupés sur l'aire sélectionnée + détection de conflit pour le créneau saisi.
+  const sameAireOccupied = useMemo(
+    () => occupied.filter((o) => aireId && o.aire_id === aireId),
+    [occupied, aireId],
+  );
+
+  const conflict = useMemo(() => {
+    if (!aireId || !debut || !duree) return null;
+    const s = new Date(debut).getTime();
+    const e = s + duree * 60000;
+    const overlapping = sameAireOccupied.filter((o) => {
+      const os = new Date(o.debut).getTime();
+      const oe = os + o.duree_min * 60000;
+      return s < oe && os < e;
+    });
+    if (overlapping.length === 0) return null;
+    const cap = aires.find((a) => a.id === aireId)?.capacite ?? 1;
+    if (overlapping.length + 1 > cap) {
+      return { overlapping, cap };
+    }
+    return null;
+  }, [aireId, debut, duree, sameAireOccupied, aires]);
+
+  // Propose le prochain créneau libre après le dernier conflit.
+  const suggestion = useMemo(() => {
+    if (!conflict) return null;
+    const latestEnd = Math.max(
+      ...conflict.overlapping.map((o) => new Date(o.debut).getTime() + o.duree_min * 60000),
+    );
+    return new Date(latestEnd);
+  }, [conflict]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
