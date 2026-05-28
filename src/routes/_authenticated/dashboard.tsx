@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { HardHat, Truck, Calendar, ClipboardCheck } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  head: () => ({ meta: [{ title: "Tableau de bord — ChantierFlow" }] }),
+  head: () => ({ meta: [{ title: "Tableau de bord — Fluxop" }] }),
   component: Dashboard,
 });
 

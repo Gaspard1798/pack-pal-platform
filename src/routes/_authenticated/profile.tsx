@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/profile")({
-  head: () => ({ meta: [{ title: "Mon profil — ChantierFlow" }] }),
+  head: () => ({ meta: [{ title: "Mon profil — Fluxop" }] }),
   component: ProfilePage,
 });
 

@@ -70,7 +70,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "ChantierFlow — Logistique de chantier" },
+      { title: "Fluxop — Logistique de chantier" },
       { name: "description", content: "Planifiez les livraisons, le matériel et les aires de votre chantier sans conflit." },
     ],
     links: [{ rel: "stylesheet", href: appCss }],

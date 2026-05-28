@@ -16,7 +16,7 @@ const schema = z.object({
 });
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Connexion — ChantierFlow" }] }),
+  head: () => ({ meta: [{ title: "Connexion — Fluxop" }] }),
   component: LoginPage,
 });
 
@@ -56,7 +56,7 @@ function LoginPage() {
           <div className="flex h-9 w-9 items-center justify-center rounded-md bg-accent text-accent-foreground">
             <HardHat className="h-5 w-5" />
           </div>
-          <span className="font-display text-lg font-semibold">ChantierFlow</span>
+          <span className="font-display text-lg font-semibold">Fluxop</span>
         </Link>
         <Card className="p-6">
           <h1 className="font-display text-2xl font-semibold">Connexion</h1>
