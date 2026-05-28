@@ -19,7 +19,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Plus, Check, X, CheckCircle2 } from "lucide-react";
+import { Plus, Check, X, CheckCircle2, Pencil } from "lucide-react";
 
 type Statut = "en_cours" | "acceptee" | "refusee" | "modifiee" | "terminee" | "annulee";
 
@@ -193,6 +193,8 @@ function DemandeRow({
   demande: Demande; chantierNom: string;
   isConducteur: boolean; isOwner: boolean; onChanged: () => void;
 }) {
+  const [modifOpen, setModifOpen] = useState(false);
+
   const updateStatut = async (statut: Statut, extra?: Partial<Demande>) => {
     const { error } = await supabase
       .from("demandes")
@@ -214,7 +216,19 @@ function DemandeRow({
         <Badge variant={STATUT_VARIANT[demande.statut]}>{STATUT_LABEL[demande.statut]}</Badge>
       </TableCell>
       <TableCell className="font-medium">{chantierNom}</TableCell>
-      <TableCell>{demande.nature}</TableCell>
+      <TableCell>
+        <div>{demande.nature}</div>
+        {demande.statut === "modifiee" && demande.commentaire && (
+          <div className="mt-0.5 max-w-xs text-xs text-blue-600 dark:text-blue-400">
+            Proposition : {demande.commentaire}
+          </div>
+        )}
+        {demande.statut === "refusee" && demande.raison_refus && (
+          <div className="mt-0.5 max-w-xs text-xs text-destructive">
+            Motif : {demande.raison_refus}
+          </div>
+        )}
+      </TableCell>
       <TableCell className="text-muted-foreground">
         {demande.quantite ? `${demande.quantite} ${demande.unite ?? ""}` : "—"}
       </TableCell>
@@ -222,11 +236,22 @@ function DemandeRow({
       <TableCell>{demande.duree_min} min</TableCell>
       <TableCell>
         <div className="flex justify-end gap-1">
-          {isConducteur && demande.statut === "en_cours" && (
+          {isConducteur && (demande.statut === "en_cours" || demande.statut === "modifiee") && (
             <>
               <Button size="sm" variant="outline" onClick={() => updateStatut("acceptee")}>
                 <Check className="size-4" /> Accepter
               </Button>
+              <Dialog open={modifOpen} onOpenChange={setModifOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline">
+                    <Pencil className="size-4" /> Proposer
+                  </Button>
+                </DialogTrigger>
+                <ModifierDialog
+                  demande={demande}
+                  onDone={() => { setModifOpen(false); onChanged(); }}
+                />
+              </Dialog>
               <Button size="sm" variant="outline" onClick={refuse}>
                 <X className="size-4" /> Refuser
               </Button>
@@ -237,7 +262,12 @@ function DemandeRow({
               <CheckCircle2 className="size-4" /> Clore
             </Button>
           )}
-          {isOwner && (demande.statut === "en_cours" || demande.statut === "acceptee") && (
+          {isOwner && demande.statut === "modifiee" && (
+            <Button size="sm" variant="default" onClick={() => updateStatut("acceptee")}>
+              <Check className="size-4" /> Accepter la proposition
+            </Button>
+          )}
+          {isOwner && (demande.statut === "en_cours" || demande.statut === "acceptee" || demande.statut === "modifiee") && (
             <Button size="sm" variant="ghost" onClick={() => updateStatut("annulee")}>
               Annuler
             </Button>
@@ -247,6 +277,84 @@ function DemandeRow({
     </TableRow>
   );
 }
+
+function ModifierDialog({ demande, onDone }: { demande: Demande; onDone: () => void }) {
+  const toLocalInput = (iso: string) => {
+    const d = new Date(iso);
+    const off = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - off).toISOString().slice(0, 16);
+  };
+
+  const [aires, setAires] = useState<Aire[]>([]);
+  const [aireId, setAireId] = useState<string>(demande.aire_id ?? "none");
+  const [debut, setDebut] = useState<string>(toLocalInput(demande.debut));
+  const [duree, setDuree] = useState<number>(demande.duree_min);
+  const [commentaire, setCommentaire] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    supabase.from("aires").select("id, nom, chantier_id").eq("chantier_id", demande.chantier_id)
+      .order("nom").then(({ data }) => setAires((data ?? []) as Aire[]));
+  }, [demande.chantier_id]);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!debut) return;
+    setSaving(true);
+    const { error } = await supabase.from("demandes").update({
+      statut: "modifiee",
+      aire_id: aireId === "none" ? null : aireId,
+      debut: new Date(debut).toISOString(),
+      duree_min: duree,
+      commentaire: commentaire || demande.commentaire,
+    }).eq("id", demande.id);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Contre-proposition envoyée");
+    onDone();
+  };
+
+  return (
+    <DialogContent className="max-w-md">
+      <DialogHeader><DialogTitle>Proposer une modification</DialogTitle></DialogHeader>
+      <form onSubmit={submit} className="space-y-4">
+        <div className="space-y-2">
+          <Label>Aire de livraison</Label>
+          <Select value={aireId} onValueChange={setAireId}>
+            <SelectTrigger><SelectValue placeholder="Aucune" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Aucune</SelectItem>
+              {aires.map((a) => <SelectItem key={a.id} value={a.id}>{a.nom}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label htmlFor="mdebut">Nouveau début</Label>
+            <Input id="mdebut" type="datetime-local" value={debut}
+              onChange={(e) => setDebut(e.target.value)} required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="mdur">Durée (min)</Label>
+            <Input id="mdur" type="number" min={5} value={duree}
+              onChange={(e) => setDuree(parseInt(e.target.value) || 0)} required />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="mcom">Message au prestataire</Label>
+          <Textarea id="mcom" value={commentaire} onChange={(e) => setCommentaire(e.target.value)}
+            placeholder="Ex : créneau déplacé pour éviter un conflit d'aire." maxLength={500} />
+        </div>
+        <DialogFooter>
+          <Button type="submit" disabled={saving || !debut}>
+            {saving ? "Envoi…" : "Envoyer la proposition"}
+          </Button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
+  );
+}
+
 
 function NewDemandeDialog({
   userId, chantiers, onCreated,

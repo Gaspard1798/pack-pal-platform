@@ -257,6 +257,45 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          chantier_id: string | null
+          created_at: string
+          demande_id: string | null
+          id: string
+          lien: string | null
+          lu: boolean
+          message: string | null
+          titre: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          chantier_id?: string | null
+          created_at?: string
+          demande_id?: string | null
+          id?: string
+          lien?: string | null
+          lu?: boolean
+          message?: string | null
+          titre: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          chantier_id?: string | null
+          created_at?: string
+          demande_id?: string | null
+          id?: string
+          lien?: string | null
+          lu?: boolean
+          message?: string | null
+          titre?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           company: string | null

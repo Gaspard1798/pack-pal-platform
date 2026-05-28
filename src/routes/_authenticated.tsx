@@ -1,7 +1,10 @@
-import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { NotificationBell } from "@/components/notification-bell";
+import { Button } from "@/components/ui/button";
+import { User } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -27,7 +30,14 @@ function AuthenticatedLayout() {
         <div className="flex flex-1 flex-col">
           <header className="flex h-14 items-center gap-2 border-b border-border bg-background/80 px-4 backdrop-blur">
             <SidebarTrigger />
+            <div className="ml-auto flex items-center gap-1">
+              <NotificationBell />
+              <Button variant="ghost" size="icon" asChild aria-label="Profil">
+                <Link to="/profile"><User className="h-5 w-5" /></Link>
+              </Button>
+            </div>
           </header>
+
           <main className="flex-1 bg-background">
             <Outlet />
           </main>
