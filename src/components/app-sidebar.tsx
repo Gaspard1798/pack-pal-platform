@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, HardHat, Truck, Calendar, ClipboardCheck, Users, LogOut } from "lucide-react";
+import { LayoutDashboard, HardHat, Truck, Calendar, ClipboardCheck, Users, LogOut, BarChart3 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
