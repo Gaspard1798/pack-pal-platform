@@ -458,6 +458,10 @@ function NewDemandeDialog({
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chantierId || !nature || !debut) return;
+    if (aires.length > 0 && !aireId) {
+      toast.error("Veuillez sélectionner une aire de livraison.");
+      return;
+    }
     setSaving(true);
     const { data: created, error } = await supabase.from("demandes").insert({
       chantier_id: chantierId,
