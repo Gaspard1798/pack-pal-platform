@@ -216,7 +216,19 @@ function DemandeRow({
         <Badge variant={STATUT_VARIANT[demande.statut]}>{STATUT_LABEL[demande.statut]}</Badge>
       </TableCell>
       <TableCell className="font-medium">{chantierNom}</TableCell>
-      <TableCell>{demande.nature}</TableCell>
+      <TableCell>
+        <div>{demande.nature}</div>
+        {demande.statut === "modifiee" && demande.commentaire && (
+          <div className="mt-0.5 max-w-xs text-xs text-blue-600 dark:text-blue-400">
+            Proposition : {demande.commentaire}
+          </div>
+        )}
+        {demande.statut === "refusee" && demande.raison_refus && (
+          <div className="mt-0.5 max-w-xs text-xs text-destructive">
+            Motif : {demande.raison_refus}
+          </div>
+        )}
+      </TableCell>
       <TableCell className="text-muted-foreground">
         {demande.quantite ? `${demande.quantite} ${demande.unite ?? ""}` : "—"}
       </TableCell>
