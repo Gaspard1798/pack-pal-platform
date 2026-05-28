@@ -649,10 +649,14 @@ function NewDemandeDialog({
         </div>
 
         <DialogFooter>
-          <Button type="submit" disabled={saving || !chantierId || !nature || !debut}>
+          <Button type="submit" disabled={saving || !chantierId || !nature || !debut || (aires.length > 0 && !aireId)}>
             {saving ? "Envoi…" : "Envoyer la demande"}
           </Button>
         </DialogFooter>
+      </form>
+    </DialogContent>
+  );
+}
       </form>
     </DialogContent>
   );
