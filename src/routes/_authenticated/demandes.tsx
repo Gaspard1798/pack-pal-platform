@@ -610,9 +610,9 @@ function NewDemandeDialog({
           </div>
         )}
 
-            <Label>Matériel nécessaire au déchargement (optionnel)</Label>
+        {materiels.length > 0 && (
           <div className="space-y-2">
-            <Label>Matériel nécessaire au déchargement *</Label>
+            <Label>Matériel nécessaire au déchargement (optionnel)</Label>
             <div className="space-y-2 rounded-md border p-3">
               {materiels.map((m) => {
                 const checked = m.id in selectedMats;
