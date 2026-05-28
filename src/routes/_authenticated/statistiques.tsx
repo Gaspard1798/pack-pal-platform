@@ -191,8 +191,8 @@ function StatistiquesPage() {
                       <CartesianGrid strokeDasharray="3 3" className="stroke-border" horizontal={false} />
                       <XAxis type="number" allowDecimals={false} className="text-xs" />
                       <YAxis type="category" dataKey="type" width={120} className="text-xs" />
-                      <Tooltip cursor={{ fill: "hsl(var(--muted))" }} />
-                      <Bar dataKey="n" name="Occurrences" radius={[0, 4, 4, 0]} fill="hsl(var(--destructive))" />
+                      <Tooltip cursor={{ fill: "var(--muted)" }} />
+                      <Bar dataKey="n" name="Occurrences" radius={[0, 4, 4, 0]} fill="var(--destructive)" />
                     </BarChart>
                   </ResponsiveContainer>
                 )}
@@ -207,11 +207,11 @@ function StatistiquesPage() {
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
                     <XAxis dataKey="aire" className="text-xs" />
                     <YAxis allowDecimals={false} className="text-xs" />
-                    <Tooltip cursor={{ fill: "hsl(var(--muted))" }} />
-                    <Bar dataKey="venues" name="Venues" radius={[4, 4, 0, 0]} fill="hsl(var(--accent))" />
-                    <Bar dataKey="nc" name="Non-conformités" radius={[4, 4, 0, 0]} fill="hsl(var(--destructive))" />
+                    <Tooltip cursor={{ fill: "var(--muted)" }} />
+                    <Bar dataKey="venues" name="Venues" radius={[4, 4, 0, 0]} fill="var(--accent)" />
+                    <Bar dataKey="nc" name="Non-conformités" radius={[4, 4, 0, 0]} fill="var(--destructive)" />
                     <Bar dataKey="retards" name="Retards" radius={[4, 4, 0, 0]}>
-                      {stats.byAire.map((_, i) => <Cell key={i} fill="hsl(var(--primary))" />)}
+                      {stats.byAire.map((_, i) => <Cell key={i} fill="var(--primary)" />)}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
