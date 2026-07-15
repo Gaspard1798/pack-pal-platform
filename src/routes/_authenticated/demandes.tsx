@@ -510,15 +510,25 @@ function NewDemandeDialog({
           </Select>
         </div>
 
-        {aires.length > 0 && (
+        {chantierId && (
           <div className="space-y-2">
-            <Label>Aire de livraison *</Label>
-            <Select value={aireId} onValueChange={setAireId}>
-              <SelectTrigger><SelectValue placeholder="Sélectionner une aire…" /></SelectTrigger>
-              <SelectContent>
-                {aires.map((a) => <SelectItem key={a.id} value={a.id}>{a.nom}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <Label>Aire de livraison {aires.length > 0 ? "*" : ""}</Label>
+            {aires.length > 0 ? (
+              <Select value={aireId} onValueChange={setAireId}>
+                <SelectTrigger><SelectValue placeholder="Sélectionner une aire…" /></SelectTrigger>
+                <SelectContent>
+                  {aires.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.nom}{a.capacite ? ` (capacité ${a.capacite})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <p className="text-xs text-muted-foreground rounded-md border border-dashed p-2">
+                Aucune aire n'a été définie sur ce chantier. Contactez le conducteur de travaux pour qu'il en configure une.
+              </p>
+            )}
           </div>
         )}
 
