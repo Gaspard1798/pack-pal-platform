@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import {
   KeyRound, Building2, Building, Layers, Home, Wrench, UsersRound,
   QrCode, ScanLine, Plus, Trash2, ClipboardList, LogIn, LogOut,
-  Camera, Check, X, PlayCircle, StopCircle, AlertTriangle,
+  Camera, Check, X, PlayCircle, StopCircle, AlertTriangle, FileWarning,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
