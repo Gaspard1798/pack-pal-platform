@@ -40,11 +40,19 @@ function StatistiquesPage() {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const [demMats, setDemMats] = useState<DemandeMat[]>([]);
+  const [materiels, setMateriels] = useState<Materiel[]>([]);
+  const [entreprises, setEntreprises] = useState<Entreprise[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+
   useEffect(() => {
     supabase.from("chantiers").select("id,nom").order("nom").then(({ data }) => {
       const list = (data ?? []) as Chantier[];
       setChantiers(list);
       if (list.length && !chantierId) setChantierId(list[0].id);
+    });
+    supabase.from("entreprises").select("id,nom").order("nom").then(({ data }) => {
+      setEntreprises((data ?? []) as Entreprise[]);
     });
   }, []);
 
@@ -53,22 +61,30 @@ function StatistiquesPage() {
     setLoading(true);
     const since = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
     (async () => {
-      const [{ data: aireData }, { data: demandeData }] = await Promise.all([
+      const [{ data: aireData }, { data: demandeData }, { data: matData }] = await Promise.all([
         supabase.from("aires").select("id,nom").eq("chantier_id", chantierId).order("nom"),
-        supabase.from("demandes").select("id,aire_id,debut,duree_min,nature,prestataire_id")
+        supabase.from("demandes").select("id,aire_id,debut,duree_min,nature,prestataire_id,statut")
           .eq("chantier_id", chantierId).gte("debut", since).order("debut"),
+        supabase.from("materiels").select("id,nom,type").eq("chantier_id", chantierId),
       ]);
       setAires((aireData ?? []) as Aire[]);
+      setMateriels((matData ?? []) as Materiel[]);
       const dem = (demandeData ?? []) as Demande[];
       setDemandes(dem);
       const ids = dem.map((d) => d.id);
       if (ids.length) {
-        const { data: vData } = await supabase
-          .from("venues")
-          .select("id,demande_id,arrivee_reelle,depart_reel,non_conformites")
-          .in("demande_id", ids);
+        const prestataireIds = [...new Set(dem.map((d) => d.prestataire_id))];
+        const [{ data: vData }, { data: dmData }, { data: pData }] = await Promise.all([
+          supabase.from("venues").select("id,demande_id,arrivee_reelle,depart_reel,non_conformites").in("demande_id", ids),
+          supabase.from("demande_materiels").select("demande_id,materiel_id,quantite").in("demande_id", ids),
+          supabase.from("profiles").select("id,entreprise_id,full_name,email").in("id", prestataireIds),
+        ]);
         setVenues((vData ?? []) as Venue[]);
-      } else setVenues([]);
+        setDemMats((dmData ?? []) as DemandeMat[]);
+        setProfiles((pData ?? []) as Profile[]);
+      } else {
+        setVenues([]); setDemMats([]); setProfiles([]);
+      }
       setLoading(false);
     })();
   }, [chantierId, days]);
