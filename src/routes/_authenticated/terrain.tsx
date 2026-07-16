@@ -102,16 +102,17 @@ function TerrainPage() {
 
   const aireName = (id: string | null) => id ? (aires.find((a) => a.id === id)?.nom ?? "—") : "—";
 
-  const onCheckin = async (d: Demande) => {
+  const onCheckin = async (d: Demande, isoDate?: string) => {
+    const stamp = isoDate ?? new Date().toISOString();
     const existing = venuesByDemande.get(d.id);
     if (existing) {
       const { error } = await supabase.from("venues")
-        .update({ arrivee_reelle: new Date().toISOString(), enregistre_par: user?.id })
+        .update({ arrivee_reelle: stamp, enregistre_par: user?.id })
         .eq("id", existing.id);
       if (error) return toast.error(error.message);
     } else {
       const { error } = await supabase.from("venues").insert({
-        demande_id: d.id, arrivee_reelle: new Date().toISOString(), enregistre_par: user?.id,
+        demande_id: d.id, arrivee_reelle: stamp, enregistre_par: user?.id,
       });
       if (error) return toast.error(error.message);
     }
