@@ -16,6 +16,7 @@ const items: Item[] = [
   { title: "Planning", url: "/planning", icon: Calendar, roles: ["conducteur", "admin"] },
   { title: "Terrain", url: "/terrain", icon: ClipboardCheck, roles: ["operateur", "conducteur", "admin"] },
   { title: "Déchets", url: "/dechets", icon: Recycle, roles: ["prestataire", "conducteur", "admin", "operateur"] },
+  { title: "Clés & Accès", url: "/cles", icon: KeyRound, roles: ["admin", "conducteur", "gestionnaire_cles", "operateur", "prestataire"] },
   { title: "Statistiques", url: "/statistiques", icon: BarChart3, roles: ["conducteur", "admin"] },
   { title: "Entreprises", url: "/admin/entreprises", icon: Building2, roles: ["conducteur", "admin"] },
   { title: "Utilisateurs", url: "/admin/users", icon: Users, roles: ["admin"] },
