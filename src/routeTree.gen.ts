@@ -20,6 +20,7 @@ import { Route as AuthenticatedStatistiquesRouteImport } from './routes/_authent
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedPlanningRouteImport } from './routes/_authenticated/planning'
 import { Route as AuthenticatedDemandesRouteImport } from './routes/_authenticated/demandes'
+import { Route as AuthenticatedDechetsRouteImport } from './routes/_authenticated/dechets'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedChantiersRouteImport } from './routes/_authenticated/chantiers'
 import { Route as AuthenticatedChantiersIdRouteImport } from './routes/_authenticated/chantiers.$id'
@@ -81,6 +82,11 @@ const AuthenticatedDemandesRoute = AuthenticatedDemandesRouteImport.update({
   path: '/demandes',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedDechetsRoute = AuthenticatedDechetsRouteImport.update({
+  id: '/dechets',
+  path: '/dechets',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/chantiers': typeof AuthenticatedChantiersRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/dechets': typeof AuthenticatedDechetsRoute
   '/demandes': typeof AuthenticatedDemandesRoute
   '/planning': typeof AuthenticatedPlanningRoute
   '/profile': typeof AuthenticatedProfileRoute
@@ -134,6 +141,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/chantiers': typeof AuthenticatedChantiersRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/dechets': typeof AuthenticatedDechetsRoute
   '/demandes': typeof AuthenticatedDemandesRoute
   '/planning': typeof AuthenticatedPlanningRoute
   '/profile': typeof AuthenticatedProfileRoute
@@ -153,6 +161,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_authenticated/chantiers': typeof AuthenticatedChantiersRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/dechets': typeof AuthenticatedDechetsRoute
   '/_authenticated/demandes': typeof AuthenticatedDemandesRoute
   '/_authenticated/planning': typeof AuthenticatedPlanningRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
@@ -172,6 +181,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/chantiers'
     | '/dashboard'
+    | '/dechets'
     | '/demandes'
     | '/planning'
     | '/profile'
@@ -189,6 +199,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/chantiers'
     | '/dashboard'
+    | '/dechets'
     | '/demandes'
     | '/planning'
     | '/profile'
@@ -207,6 +218,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/_authenticated/chantiers'
     | '/_authenticated/dashboard'
+    | '/_authenticated/dechets'
     | '/_authenticated/demandes'
     | '/_authenticated/planning'
     | '/_authenticated/profile'
@@ -305,6 +317,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDemandesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/dechets': {
+      id: '/_authenticated/dechets'
+      path: '/dechets'
+      fullPath: '/dechets'
+      preLoaderRoute: typeof AuthenticatedDechetsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -360,6 +379,7 @@ const AuthenticatedChantiersRouteWithChildren =
 interface AuthenticatedRouteChildren {
   AuthenticatedChantiersRoute: typeof AuthenticatedChantiersRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDechetsRoute: typeof AuthenticatedDechetsRoute
   AuthenticatedDemandesRoute: typeof AuthenticatedDemandesRoute
   AuthenticatedPlanningRoute: typeof AuthenticatedPlanningRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
@@ -372,6 +392,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedChantiersRoute: AuthenticatedChantiersRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDechetsRoute: AuthenticatedDechetsRoute,
   AuthenticatedDemandesRoute: AuthenticatedDemandesRoute,
   AuthenticatedPlanningRoute: AuthenticatedPlanningRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
