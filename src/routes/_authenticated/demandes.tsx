@@ -19,7 +19,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Check, X, CheckCircle2, Pencil, Truck, Wrench } from "lucide-react";
+import { Check, X, CheckCircle2, Pencil, Truck, Wrench, Download } from "lucide-react";
 
 type DemandeMode = "livraison" | "materiel";
 
@@ -73,21 +73,32 @@ function DemandesPage() {
 
   const [chantiers, setChantiers] = useState<Chantier[]>([]);
   const [demandes, setDemandes] = useState<Demande[]>([]);
+  const [entreprises, setEntreprises] = useState<{ id: string; nom: string }[]>([]);
+  const [prestatairesMap, setPrestatairesMap] = useState<Record<string, { email: string; nom: string | null; entreprise_id: string | null }>>({});
   const [loading, setLoading] = useState(true);
   const [openMode, setOpenMode] = useState<DemandeMode | null>(null);
   const [filterStatut, setFilterStatut] = useState<Statut | "all">("all");
   const [filterChantier, setFilterChantier] = useState<string>("all");
+  const [filterEntreprise, setFilterEntreprise] = useState<string>("all");
 
   const load = async () => {
     setLoading(true);
-    const [c, d] = await Promise.all([
+    const [c, d, e, p] = await Promise.all([
       supabase.from("chantiers").select("id, nom").order("nom"),
       supabase.from("demandes").select("*").order("debut", { ascending: false }),
+      supabase.from("entreprises").select("id, nom").order("nom"),
+      supabase.from("profiles").select("id, email, full_name, entreprise_id"),
     ]);
     if (c.error) toast.error(c.error.message);
     if (d.error) toast.error(d.error.message);
     setChantiers((c.data ?? []) as Chantier[]);
     setDemandes((d.data ?? []) as Demande[]);
+    setEntreprises((e.data ?? []) as { id: string; nom: string }[]);
+    const map: Record<string, { email: string; nom: string | null; entreprise_id: string | null }> = {};
+    for (const row of (p.data ?? []) as { id: string; email: string; full_name: string | null; entreprise_id: string | null }[]) {
+      map[row.id] = { email: row.email, nom: row.full_name, entreprise_id: row.entreprise_id };
+    }
+    setPrestatairesMap(map);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
@@ -96,11 +107,49 @@ function DemandesPage() {
     () => Object.fromEntries(chantiers.map((c) => [c.id, c.nom])),
     [chantiers],
   );
-
-  const filtered = demandes.filter((d) =>
-    (filterStatut === "all" || d.statut === filterStatut) &&
-    (filterChantier === "all" || d.chantier_id === filterChantier),
+  const entreprisesById = useMemo(
+    () => Object.fromEntries(entreprises.map((e) => [e.id, e.nom])),
+    [entreprises],
   );
+
+  const filtered = demandes.filter((d) => {
+    if (filterStatut !== "all" && d.statut !== filterStatut) return false;
+    if (filterChantier !== "all" && d.chantier_id !== filterChantier) return false;
+    if (filterEntreprise !== "all") {
+      const ent = prestatairesMap[d.prestataire_id]?.entreprise_id ?? null;
+      if (filterEntreprise === "none" ? ent !== null : ent !== filterEntreprise) return false;
+    }
+    return true;
+  });
+
+  const exportCsv = () => {
+    const header = ["statut", "chantier", "prestataire", "entreprise", "nature", "quantite", "unite", "debut", "duree_min", "commentaire", "raison_refus"];
+    const lines = [header.join(";")];
+    for (const d of filtered) {
+      const pres = prestatairesMap[d.prestataire_id];
+      const entNom = pres?.entreprise_id ? entreprisesById[pres.entreprise_id] ?? "" : "";
+      lines.push([
+        STATUT_LABEL[d.statut],
+        chantiersById[d.chantier_id] ?? "",
+        pres?.nom || pres?.email || "",
+        entNom,
+        d.nature,
+        d.quantite ?? "",
+        d.unite ?? "",
+        new Date(d.debut).toLocaleString("fr-FR"),
+        d.duree_min,
+        d.commentaire ?? "",
+        d.raison_refus ?? "",
+      ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";"));
+    }
+    const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `demandes-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -156,6 +205,25 @@ function DemandesPage() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+        {isConducteur && (
+          <div className="w-64">
+            <Select value={filterEntreprise} onValueChange={setFilterEntreprise}>
+              <SelectTrigger><SelectValue placeholder="Entreprise" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes les entreprises</SelectItem>
+                <SelectItem value="none">Sans entreprise</SelectItem>
+                {entreprises.map((e) => (
+                  <SelectItem key={e.id} value={e.id}>{e.nom}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        <div className="ml-auto">
+          <Button variant="outline" onClick={exportCsv} disabled={filtered.length === 0}>
+            <Download className="size-4" /> Export CSV
+          </Button>
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, HardHat, Truck, Calendar, ClipboardCheck, Users, LogOut, BarChart3 } from "lucide-react";
+import { LayoutDashboard, HardHat, Truck, Calendar, ClipboardCheck, Users, LogOut, BarChart3, Building2 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
@@ -16,6 +16,7 @@ const items: Item[] = [
   { title: "Planning", url: "/planning", icon: Calendar, roles: ["conducteur", "admin"] },
   { title: "Terrain", url: "/terrain", icon: ClipboardCheck, roles: ["operateur", "conducteur", "admin"] },
   { title: "Statistiques", url: "/statistiques", icon: BarChart3, roles: ["conducteur", "admin"] },
+  { title: "Entreprises", url: "/admin/entreprises", icon: Building2, roles: ["conducteur", "admin"] },
   { title: "Utilisateurs", url: "/admin/users", icon: Users, roles: ["admin"] },
 ];
 

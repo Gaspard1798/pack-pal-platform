@@ -7,7 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
+
+type Entreprise = { id: string; nom: string };
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({ meta: [{ title: "Mon profil — Fluxop" }] }),
@@ -19,34 +24,42 @@ function ProfilePage() {
   const [fullName, setFullName] = useState("");
   const [company, setCompany] = useState("");
   const [phone, setPhone] = useState("");
+  const [entrepriseId, setEntrepriseId] = useState<string>("none");
+  const [entreprises, setEntreprises] = useState<Entreprise[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("full_name, company, phone")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (error) toast.error(error.message);
-      if (data) {
-        setFullName(data.full_name ?? "");
-        setCompany(data.company ?? "");
-        setPhone(data.phone ?? "");
+      const [p, e] = await Promise.all([
+        supabase.from("profiles").select("full_name, company, phone, entreprise_id").eq("id", user.id).maybeSingle(),
+        supabase.from("entreprises").select("id, nom").order("nom"),
+      ]);
+      if (p.error) toast.error(p.error.message);
+      if (p.data) {
+        setFullName(p.data.full_name ?? "");
+        setCompany(p.data.company ?? "");
+        setPhone(p.data.phone ?? "");
+        setEntrepriseId(p.data.entreprise_id ?? "none");
       }
+      setEntreprises((e.data ?? []) as Entreprise[]);
       setLoading(false);
     })();
   }, [user]);
 
-  const save = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const save = async (ev: React.FormEvent) => {
+    ev.preventDefault();
     if (!user) return;
     setSaving(true);
     const { error } = await supabase
       .from("profiles")
-      .update({ full_name: fullName || null, company: company || null, phone: phone || null })
+      .update({
+        full_name: fullName || null,
+        company: company || null,
+        phone: phone || null,
+        entreprise_id: entrepriseId === "none" ? null : entrepriseId,
+      })
       .eq("id", user.id);
     setSaving(false);
     if (error) toast.error(error.message);
@@ -91,7 +104,23 @@ function ProfilePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="company">Société</Label>
+                <Label htmlFor="entreprise">Entreprise</Label>
+                <Select value={entrepriseId} onValueChange={setEntrepriseId}>
+                  <SelectTrigger id="entreprise"><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Aucune</SelectItem>
+                    {entreprises.map((e) => (
+                      <SelectItem key={e.id} value={e.id}>{e.nom}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Rattacher votre compte à une entreprise permet aux conducteurs de filtrer les demandes par société.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="company">Société (libre)</Label>
                 <Input id="company" value={company} onChange={(e) => setCompany(e.target.value)} maxLength={120} />
               </div>
 
