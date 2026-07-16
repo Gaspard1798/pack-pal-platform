@@ -31,6 +31,7 @@ type Venue = {
   arrivee_reelle: string | null; depart_reel: string | null;
   non_conformites: string[] | null; commentaire: string | null;
   photos: string[] | null;
+  retard_minutes: number | null;
 };
 
 const NC_OPTIONS = [
@@ -240,7 +241,9 @@ function DemandeCard({
             {venue?.non_conformites && venue.non_conformites.length > 0 && (
               <div className="flex flex-wrap gap-1 pt-1">
                 {venue.non_conformites.map((nc) => (
-                  <Badge key={nc} variant="destructive" className="text-[10px]">{nc}</Badge>
+                  <Badge key={nc} variant="destructive" className="text-[10px]">
+                    {nc}{nc === "Retard" && venue.retard_minutes != null ? ` (${venue.retard_minutes} min)` : ""}
+                  </Badge>
                 ))}
               </div>
             )}
@@ -275,6 +278,9 @@ function NonConformiteDialog({
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string[]>(venue?.non_conformites ?? []);
   const [commentaire, setCommentaire] = useState(venue?.commentaire ?? "");
+  const [retardMin, setRetardMin] = useState<string>(
+    venue?.retard_minutes != null ? String(venue.retard_minutes) : ""
+  );
   const [existing, setExisting] = useState<string[]>(venue?.photos ?? []);
   const [removed, setRemoved] = useState<string[]>([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
@@ -284,11 +290,15 @@ function NonConformiteDialog({
     if (open) {
       setSelected(venue?.non_conformites ?? []);
       setCommentaire(venue?.commentaire ?? "");
+      setRetardMin(venue?.retard_minutes != null ? String(venue.retard_minutes) : "");
       setExisting(venue?.photos ?? []);
       setRemoved([]);
       setNewFiles([]);
     }
   }, [open, venue]);
+
+
+
 
   const toggle = (nc: string, checked: boolean) =>
     setSelected((prev) => checked ? [...prev, nc] : prev.filter((x) => x !== nc));
@@ -318,16 +328,19 @@ function NonConformiteDialog({
     }
 
     const photos = [...existing, ...uploadedPaths];
+    const retard = selected.includes("Retard") && retardMin.trim() !== ""
+      ? Math.max(0, parseInt(retardMin, 10) || 0)
+      : null;
 
     if (venue) {
       const { error } = await supabase.from("venues")
-        .update({ non_conformites: selected, commentaire: commentaire || null, photos, enregistre_par: user?.id })
+        .update({ non_conformites: selected, commentaire: commentaire || null, photos, retard_minutes: retard, enregistre_par: user?.id })
         .eq("id", venue.id);
       if (error) { setSaving(false); return toast.error(error.message); }
     } else {
       const { error } = await supabase.from("venues").insert({
         demande_id: demandeId, non_conformites: selected,
-        commentaire: commentaire || null, photos, enregistre_par: user?.id,
+        commentaire: commentaire || null, photos, retard_minutes: retard, enregistre_par: user?.id,
       });
       if (error) { setSaving(false); return toast.error(error.message); }
     }
@@ -366,6 +379,20 @@ function NonConformiteDialog({
               </label>
             ))}
           </div>
+          {selected.includes("Retard") && (
+            <div className="space-y-2">
+              <Label htmlFor="nc-retard">Durée du retard (minutes)</Label>
+              <Input
+                id="nc-retard"
+                type="number"
+                min={0}
+                inputMode="numeric"
+                value={retardMin}
+                onChange={(e) => setRetardMin(e.target.value)}
+                placeholder="Ex. 30"
+              />
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="nc-com">Commentaire</Label>
             <Textarea id="nc-com" value={commentaire}

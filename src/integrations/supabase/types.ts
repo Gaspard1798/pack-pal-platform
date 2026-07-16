@@ -1355,6 +1355,7 @@ export type Database = {
           id: string
           non_conformites: string[] | null
           photos: string[] | null
+          retard_minutes: number | null
         }
         Insert: {
           arrivee_reelle?: string | null
@@ -1366,6 +1367,7 @@ export type Database = {
           id?: string
           non_conformites?: string[] | null
           photos?: string[] | null
+          retard_minutes?: number | null
         }
         Update: {
           arrivee_reelle?: string | null
@@ -1377,6 +1379,7 @@ export type Database = {
           id?: string
           non_conformites?: string[] | null
           photos?: string[] | null
+          retard_minutes?: number | null
         }
         Relationships: [
           {
