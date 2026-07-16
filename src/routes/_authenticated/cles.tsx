@@ -385,7 +385,7 @@ function LogementsTab({ chantierId, canManage }: { chantierId: string; canManage
   );
 }
 
-function NewLogementDialog({ chantierId, onDone, batimentsCount }: { chantierId: string; onDone: () => void; batimentsCount?: number }) {
+function NewLogementDialog({ chantierId, onDone }: { chantierId: string; onDone: () => void }) {
   const [open, setOpen] = useState(false);
   const [batiments, setBatiments] = useState<Batiment[]>([]);
   const [blocs, setBlocs] = useState<Bloc[]>([]);
