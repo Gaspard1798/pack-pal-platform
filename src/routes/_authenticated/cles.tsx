@@ -523,7 +523,7 @@ function TrousseauDetail({
     setSaving(true);
     const { error } = await supabase.from("mouvements_cles").insert({
       trousseau_id: trousseau.id,
-      type,
+      type: type as any,
       emetteur_id: userId,
       destinataire_libre: destinataire || null,
       motif: motif || null,
