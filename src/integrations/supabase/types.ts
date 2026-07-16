@@ -49,6 +49,109 @@ export type Database = {
           },
         ]
       }
+      audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          ancienne_valeur: Json | null
+          contexte: Json | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          nouvelle_valeur: Json | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          ancienne_valeur?: Json | null
+          contexte?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          nouvelle_valeur?: Json | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          ancienne_valeur?: Json | null
+          contexte?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          nouvelle_valeur?: Json | null
+        }
+        Relationships: []
+      }
+      batiments: {
+        Row: {
+          chantier_id: string
+          created_at: string
+          description: string | null
+          id: string
+          nom: string
+          updated_at: string
+        }
+        Insert: {
+          chantier_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          nom: string
+          updated_at?: string
+        }
+        Update: {
+          chantier_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          nom?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batiments_chantier_id_fkey"
+            columns: ["chantier_id"]
+            isOneToOne: false
+            referencedRelation: "chantiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      blocs: {
+        Row: {
+          batiment_id: string
+          created_at: string
+          id: string
+          nom: string
+          updated_at: string
+        }
+        Insert: {
+          batiment_id: string
+          created_at?: string
+          id?: string
+          nom: string
+          updated_at?: string
+        }
+        Update: {
+          batiment_id?: string
+          created_at?: string
+          id?: string
+          nom?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blocs_batiment_id_fkey"
+            columns: ["batiment_id"]
+            isOneToOne: false
+            referencedRelation: "batiments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chantier_members: {
         Row: {
           chantier_id: string
@@ -119,6 +222,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      compagnons: {
+        Row: {
+          actif: boolean
+          created_at: string
+          email: string | null
+          entreprise_id: string | null
+          id: string
+          nom: string
+          prenom: string | null
+          telephone: string | null
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          created_at?: string
+          email?: string | null
+          entreprise_id?: string | null
+          id?: string
+          nom: string
+          prenom?: string | null
+          telephone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          created_at?: string
+          email?: string | null
+          entreprise_id?: string | null
+          id?: string
+          nom?: string
+          prenom?: string | null
+          telephone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compagnons_entreprise_id_fkey"
+            columns: ["entreprise_id"]
+            isOneToOne: false
+            referencedRelation: "entreprises"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contenants: {
         Row: {
@@ -308,6 +455,88 @@ export type Database = {
         }
         Relationships: []
       }
+      logements: {
+        Row: {
+          consignes: string | null
+          created_at: string
+          dernier_etat: Json | null
+          id: string
+          niveau_id: string
+          numero: string
+          phase: Database["public"]["Enums"]["logement_phase"]
+          sensibilite: Database["public"]["Enums"]["logement_sensibilite"]
+          statut: Database["public"]["Enums"]["logement_statut"]
+          updated_at: string
+        }
+        Insert: {
+          consignes?: string | null
+          created_at?: string
+          dernier_etat?: Json | null
+          id?: string
+          niveau_id: string
+          numero: string
+          phase?: Database["public"]["Enums"]["logement_phase"]
+          sensibilite?: Database["public"]["Enums"]["logement_sensibilite"]
+          statut?: Database["public"]["Enums"]["logement_statut"]
+          updated_at?: string
+        }
+        Update: {
+          consignes?: string | null
+          created_at?: string
+          dernier_etat?: Json | null
+          id?: string
+          niveau_id?: string
+          numero?: string
+          phase?: Database["public"]["Enums"]["logement_phase"]
+          sensibilite?: Database["public"]["Enums"]["logement_sensibilite"]
+          statut?: Database["public"]["Enums"]["logement_statut"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "logements_niveau_id_fkey"
+            columns: ["niveau_id"]
+            isOneToOne: false
+            referencedRelation: "niveaux"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lots: {
+        Row: {
+          chantier_id: string
+          code: string | null
+          created_at: string
+          id: string
+          nom: string
+          updated_at: string
+        }
+        Insert: {
+          chantier_id: string
+          code?: string | null
+          created_at?: string
+          id?: string
+          nom: string
+          updated_at?: string
+        }
+        Update: {
+          chantier_id?: string
+          code?: string | null
+          created_at?: string
+          id?: string
+          nom?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lots_chantier_id_fkey"
+            columns: ["chantier_id"]
+            isOneToOne: false
+            referencedRelation: "chantiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       materiels: {
         Row: {
           chantier_id: string
@@ -339,6 +568,107 @@ export type Database = {
             columns: ["chantier_id"]
             isOneToOne: false
             referencedRelation: "chantiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mouvements_cles: {
+        Row: {
+          commentaire: string | null
+          created_at: string
+          created_by: string | null
+          destinataire_id: string | null
+          destinataire_libre: string | null
+          ecart: string | null
+          emetteur_id: string | null
+          id: string
+          logement_id: string | null
+          motif: string | null
+          restitution_prevue: string | null
+          restitution_reelle: string | null
+          trousseau_id: string
+          type: Database["public"]["Enums"]["mouvement_type"]
+        }
+        Insert: {
+          commentaire?: string | null
+          created_at?: string
+          created_by?: string | null
+          destinataire_id?: string | null
+          destinataire_libre?: string | null
+          ecart?: string | null
+          emetteur_id?: string | null
+          id?: string
+          logement_id?: string | null
+          motif?: string | null
+          restitution_prevue?: string | null
+          restitution_reelle?: string | null
+          trousseau_id: string
+          type: Database["public"]["Enums"]["mouvement_type"]
+        }
+        Update: {
+          commentaire?: string | null
+          created_at?: string
+          created_by?: string | null
+          destinataire_id?: string | null
+          destinataire_libre?: string | null
+          ecart?: string | null
+          emetteur_id?: string | null
+          id?: string
+          logement_id?: string | null
+          motif?: string | null
+          restitution_prevue?: string | null
+          restitution_reelle?: string | null
+          trousseau_id?: string
+          type?: Database["public"]["Enums"]["mouvement_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mouvements_cles_logement_id_fkey"
+            columns: ["logement_id"]
+            isOneToOne: false
+            referencedRelation: "logements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mouvements_cles_trousseau_id_fkey"
+            columns: ["trousseau_id"]
+            isOneToOne: false
+            referencedRelation: "trousseaux"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      niveaux: {
+        Row: {
+          bloc_id: string
+          created_at: string
+          id: string
+          nom: string
+          ordre: number | null
+          updated_at: string
+        }
+        Insert: {
+          bloc_id: string
+          created_at?: string
+          id?: string
+          nom: string
+          ordre?: number | null
+          updated_at?: string
+        }
+        Update: {
+          bloc_id?: string
+          created_at?: string
+          id?: string
+          nom?: string
+          ordre?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "niveaux_bloc_id_fkey"
+            columns: ["bloc_id"]
+            isOneToOne: false
+            referencedRelation: "blocs"
             referencedColumns: ["id"]
           },
         ]
@@ -381,6 +711,89 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      prises_poste: {
+        Row: {
+          chantier_id: string
+          cles_non_restituees: Json | null
+          connexion_ok: boolean
+          consignes_jour: string | null
+          controleur_id: string | null
+          coureur_id: string | null
+          created_at: string
+          debut_at: string
+          ecarts: Json
+          fin_at: string | null
+          gestionnaire_id: string
+          id: string
+          interventions_ouvertes: Json | null
+          inventaire: Json
+          inventaire_fin: Json | null
+          logements_ouverts: Json | null
+          nc_en_attente: Json | null
+          passation_a: string | null
+          passation_at: string | null
+          telephone_ok: boolean
+          updated_at: string
+          zone: string | null
+        }
+        Insert: {
+          chantier_id: string
+          cles_non_restituees?: Json | null
+          connexion_ok?: boolean
+          consignes_jour?: string | null
+          controleur_id?: string | null
+          coureur_id?: string | null
+          created_at?: string
+          debut_at?: string
+          ecarts?: Json
+          fin_at?: string | null
+          gestionnaire_id: string
+          id?: string
+          interventions_ouvertes?: Json | null
+          inventaire?: Json
+          inventaire_fin?: Json | null
+          logements_ouverts?: Json | null
+          nc_en_attente?: Json | null
+          passation_a?: string | null
+          passation_at?: string | null
+          telephone_ok?: boolean
+          updated_at?: string
+          zone?: string | null
+        }
+        Update: {
+          chantier_id?: string
+          cles_non_restituees?: Json | null
+          connexion_ok?: boolean
+          consignes_jour?: string | null
+          controleur_id?: string | null
+          coureur_id?: string | null
+          created_at?: string
+          debut_at?: string
+          ecarts?: Json
+          fin_at?: string | null
+          gestionnaire_id?: string
+          id?: string
+          interventions_ouvertes?: Json | null
+          inventaire?: Json
+          inventaire_fin?: Json | null
+          logements_ouverts?: Json | null
+          nc_en_attente?: Json | null
+          passation_a?: string | null
+          passation_at?: string | null
+          telephone_ok?: boolean
+          updated_at?: string
+          zone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prises_poste_chantier_id_fkey"
+            columns: ["chantier_id"]
+            isOneToOne: false
+            referencedRelation: "chantiers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -543,6 +956,108 @@ export type Database = {
           },
         ]
       }
+      trousseaux: {
+        Row: {
+          batiment_id: string | null
+          bloc_id: string | null
+          chantier_id: string
+          commentaire: string | null
+          created_at: string
+          dernier_inventaire: string | null
+          emplacement: string | null
+          etat: string | null
+          gestionnaire_id: string | null
+          id: string
+          logement_id: string | null
+          nb_cles: number
+          nb_doubles: number
+          niveau_id: string | null
+          qr_code: string | null
+          reference: string
+          statut: Database["public"]["Enums"]["trousseau_statut"]
+          type: string | null
+          updated_at: string
+        }
+        Insert: {
+          batiment_id?: string | null
+          bloc_id?: string | null
+          chantier_id: string
+          commentaire?: string | null
+          created_at?: string
+          dernier_inventaire?: string | null
+          emplacement?: string | null
+          etat?: string | null
+          gestionnaire_id?: string | null
+          id?: string
+          logement_id?: string | null
+          nb_cles?: number
+          nb_doubles?: number
+          niveau_id?: string | null
+          qr_code?: string | null
+          reference: string
+          statut?: Database["public"]["Enums"]["trousseau_statut"]
+          type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          batiment_id?: string | null
+          bloc_id?: string | null
+          chantier_id?: string
+          commentaire?: string | null
+          created_at?: string
+          dernier_inventaire?: string | null
+          emplacement?: string | null
+          etat?: string | null
+          gestionnaire_id?: string | null
+          id?: string
+          logement_id?: string | null
+          nb_cles?: number
+          nb_doubles?: number
+          niveau_id?: string | null
+          qr_code?: string | null
+          reference?: string
+          statut?: Database["public"]["Enums"]["trousseau_statut"]
+          type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trousseaux_batiment_id_fkey"
+            columns: ["batiment_id"]
+            isOneToOne: false
+            referencedRelation: "batiments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trousseaux_bloc_id_fkey"
+            columns: ["bloc_id"]
+            isOneToOne: false
+            referencedRelation: "blocs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trousseaux_chantier_id_fkey"
+            columns: ["chantier_id"]
+            isOneToOne: false
+            referencedRelation: "chantiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trousseaux_logement_id_fkey"
+            columns: ["logement_id"]
+            isOneToOne: false
+            referencedRelation: "logements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trousseaux_niveau_id_fkey"
+            columns: ["niveau_id"]
+            isOneToOne: false
+            referencedRelation: "niveaux"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -650,6 +1165,33 @@ export type Database = {
         | "modifiee"
         | "terminee"
         | "annulee"
+      logement_phase:
+        | "opr"
+        | "levee_reserves"
+        | "pre_livraison"
+        | "livraison"
+        | "livre"
+      logement_sensibilite: "normale" | "sensible" | "tres_sensible"
+      logement_statut:
+        | "ferme_disponible"
+        | "demande_en_attente"
+        | "ouverture_en_cours"
+        | "intervention_en_cours"
+        | "sortie_a_controler"
+        | "remise_en_etat"
+        | "non_conforme"
+        | "bloque"
+        | "impossible_securiser"
+        | "livre"
+        | "acces_interdit"
+      mouvement_type:
+        | "affectation"
+        | "ouverture"
+        | "transfert"
+        | "restitution"
+        | "declaration_perte"
+        | "declaration_endommagement"
+        | "inventaire"
       rotation_operation: "pose" | "rotation" | "enlevement"
       rotation_statut:
         | "en_cours"
@@ -657,6 +1199,19 @@ export type Database = {
         | "refusee"
         | "terminee"
         | "annulee"
+      trousseau_statut:
+        | "disponible"
+        | "affecte"
+        | "en_utilisation"
+        | "prete"
+        | "en_transfert"
+        | "non_restitue"
+        | "manquant"
+        | "perdu"
+        | "casse"
+        | "double_commande"
+        | "indisponible"
+        | "archive"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -801,6 +1356,36 @@ export const Constants = {
         "terminee",
         "annulee",
       ],
+      logement_phase: [
+        "opr",
+        "levee_reserves",
+        "pre_livraison",
+        "livraison",
+        "livre",
+      ],
+      logement_sensibilite: ["normale", "sensible", "tres_sensible"],
+      logement_statut: [
+        "ferme_disponible",
+        "demande_en_attente",
+        "ouverture_en_cours",
+        "intervention_en_cours",
+        "sortie_a_controler",
+        "remise_en_etat",
+        "non_conforme",
+        "bloque",
+        "impossible_securiser",
+        "livre",
+        "acces_interdit",
+      ],
+      mouvement_type: [
+        "affectation",
+        "ouverture",
+        "transfert",
+        "restitution",
+        "declaration_perte",
+        "declaration_endommagement",
+        "inventaire",
+      ],
       rotation_operation: ["pose", "rotation", "enlevement"],
       rotation_statut: [
         "en_cours",
@@ -808,6 +1393,20 @@ export const Constants = {
         "refusee",
         "terminee",
         "annulee",
+      ],
+      trousseau_statut: [
+        "disponible",
+        "affecte",
+        "en_utilisation",
+        "prete",
+        "en_transfert",
+        "non_restitue",
+        "manquant",
+        "perdu",
+        "casse",
+        "double_commande",
+        "indisponible",
+        "archive",
       ],
     },
   },
