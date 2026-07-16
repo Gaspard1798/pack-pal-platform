@@ -188,11 +188,13 @@ function TerrainPage() {
 }
 
 function DemandeCard({
-  d, venue, aireName, onCheckin, onCheckout, onChanged,
+  d, venue, aireName, onCheckin, onCheckout, onClose, onChanged,
 }: {
   d: Demande; venue?: Venue; aireName: string;
-  onCheckin: (iso?: string) => void; onCheckout: () => void; onChanged: () => void;
+  onCheckin: (iso?: string) => void; onCheckout: () => void; onClose: () => void; onChanged: () => void;
 }) {
+  const { roles } = useAuth();
+  const canClose = roles.includes("operateur") || roles.includes("admin");
   const start = new Date(d.debut);
   const end = new Date(start.getTime() + d.duree_min * 60000);
   const fmt = (x: Date) => x.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
