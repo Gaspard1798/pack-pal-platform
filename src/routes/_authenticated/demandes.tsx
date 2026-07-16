@@ -467,23 +467,42 @@ function NewDemandeDialog({
     return new Date(latestEnd);
   }, [conflict]);
 
+  const matEntries = Object.entries(selectedMats).filter(([, q]) => q > 0);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chantierId || !nature || !debut) return;
-    if (aires.length > 0 && !aireId) {
-      toast.error("Veuillez sélectionner une aire de livraison.");
-      return;
-    }
+    if (!chantierId || !debut) return;
 
+    let finalNature = nature;
+    if (isMateriel) {
+      if (matEntries.length === 0) {
+        toast.error("Sélectionnez au moins un moyen matériel à réserver.");
+        return;
+      }
+      // Nature auto-dérivée de la liste des matériels réservés
+      finalNature = matEntries
+        .map(([id, q]) => {
+          const m = materiels.find((x) => x.id === id);
+          return m ? `${m.nom} × ${q}` : "";
+        })
+        .filter(Boolean)
+        .join(", ") || "Réservation de moyen matériel";
+    } else {
+      if (!nature) return;
+      if (aires.length > 0 && !aireId) {
+        toast.error("Veuillez sélectionner une aire de livraison.");
+        return;
+      }
+    }
 
     setSaving(true);
     const { data: created, error } = await supabase.from("demandes").insert({
       chantier_id: chantierId,
       prestataire_id: userId,
-      aire_id: aireId || null,
-      nature,
-      quantite: quantite ? parseFloat(quantite) : null,
-      unite: unite || null,
+      aire_id: isMateriel ? null : (aireId || null),
+      nature: finalNature,
+      quantite: isMateriel ? null : (quantite ? parseFloat(quantite) : null),
+      unite: isMateriel ? null : (unite || null),
       debut: new Date(debut).toISOString(),
       duree_min: duree,
       commentaire: commentaire || null,
@@ -495,18 +514,19 @@ function NewDemandeDialog({
       return;
     }
 
-    const matRows = Object.entries(selectedMats)
-      .filter(([, q]) => q > 0)
-      .map(([materiel_id, q]) => ({ demande_id: created.id, materiel_id, quantite: q }));
+    const matRows = matEntries.map(([materiel_id, q]) => ({
+      demande_id: created.id, materiel_id, quantite: q,
+    }));
     if (matRows.length > 0) {
       const { error: mErr } = await supabase.from("demande_materiels").insert(matRows);
       if (mErr) toast.error(`Matériel : ${mErr.message}`);
     }
 
     setSaving(false);
-    toast.success("Demande envoyée");
+    toast.success(isMateriel ? "Réservation matériel envoyée" : "Demande de livraison envoyée");
     onCreated();
   };
+
 
   return (
     <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
