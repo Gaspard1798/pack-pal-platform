@@ -146,7 +146,7 @@ function AdminUsersPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Utilisateur</TableHead>
-                  <TableHead>Société</TableHead>
+                  <TableHead>Entreprise</TableHead>
                   <TableHead>Rôles actuels</TableHead>
                   {ALL_ROLES.map((r) => (
                     <TableHead key={r} className="text-center text-xs">
@@ -164,8 +164,19 @@ function AdminUsersPage() {
                         <div className="font-medium">{p.full_name || "—"}</div>
                         <div className="text-xs text-muted-foreground">{p.email}</div>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {p.company || "—"}
+                      <TableCell>
+                        <Select
+                          value={p.entreprise_id ?? "none"}
+                          onValueChange={(v) => setEntreprise(p.id, v === "none" ? null : v)}
+                        >
+                          <SelectTrigger className="h-8 w-48"><SelectValue placeholder="—" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Aucune</SelectItem>
+                            {entreprises.map((e) => (
+                              <SelectItem key={e.id} value={e.id}>{e.nom}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
