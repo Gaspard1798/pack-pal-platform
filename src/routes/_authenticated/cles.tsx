@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import {
   KeyRound, Building2, Building, Layers, Home, Wrench, UsersRound,
   QrCode, ScanLine, Plus, Trash2, ClipboardList, LogIn, LogOut,
-  Camera, Check, X, PlayCircle, StopCircle, AlertTriangle,
+  Camera, Check, X, PlayCircle, StopCircle, AlertTriangle, FileWarning,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -161,7 +161,6 @@ function ClesPage() {
             <TabsTrigger value="cles">Clés</TabsTrigger>
             <TabsTrigger value="interventions">Interventions</TabsTrigger>
             <TabsTrigger value="nc">Non-conformités</TabsTrigger>
-            <TabsTrigger value="rondes">Rondes</TabsTrigger>
             <TabsTrigger value="prise-poste">Prise de poste</TabsTrigger>
             <TabsTrigger value="parametres">Paramètres</TabsTrigger>
           </TabsList>
@@ -171,8 +170,7 @@ function ClesPage() {
           <TabsContent value="logements"><LogementsTab chantierId={chantierId} canManage={canManage} /></TabsContent>
           <TabsContent value="cles"><ClesTab chantierId={chantierId} canManage={canManage} userId={user?.id ?? null} /></TabsContent>
           <TabsContent value="interventions"><InterventionsTab chantierId={chantierId} userId={user?.id ?? null} roles={roles} /></TabsContent>
-          <TabsContent value="nc"><Placeholder title="Non-conformités" hint="Sera disponible dans le Lot 3." /></TabsContent>
-          <TabsContent value="rondes"><Placeholder title="Rondes" hint="Sera disponible dans le Lot 3." /></TabsContent>
+          <TabsContent value="nc"><NonConformitesTab chantierId={chantierId} userId={user?.id ?? null} canManage={canManage} /></TabsContent>
           <TabsContent value="prise-poste"><PrisePosteTab chantierId={chantierId} userId={user?.id ?? null} roles={roles} /></TabsContent>
           <TabsContent value="parametres"><ParametresTab chantierId={chantierId} canManage={canManage} /></TabsContent>
         </Tabs>
@@ -194,26 +192,51 @@ function Placeholder({ title, hint }: { title: string; hint: string }) {
 function DashboardTab({ chantierId }: { chantierId: string }) {
   const [stats, setStats] = useState({
     logements: 0, ouverts: 0, interventions: 0, bloques: 0,
-    trousseaux: 0, non_restitues: 0,
+    sorties_ctrl: 0, trousseaux: 0, non_restitues: 0,
+    nc_ouvertes: 0, nc_critiques: 0, nc_resolues_30j: 0,
+    duree_moy_min: 0, interv_30j: 0,
   });
+  const [ncParCat, setNcParCat] = useState<Record<string, number>>({});
 
   useEffect(() => {
     (async () => {
-      const [logs, trs] = await Promise.all([
+      const since30 = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+      const [logs, trs, ncs, intervs] = await Promise.all([
         supabase.from("logements").select("id, statut, niveau_id, niveaux!inner(bloc_id, blocs!inner(batiment_id, batiments!inner(chantier_id)))")
           .eq("niveaux.blocs.batiments.chantier_id", chantierId),
         supabase.from("trousseaux").select("id, statut").eq("chantier_id", chantierId),
+        supabase.from("non_conformites").select("id, statut, gravite, categorie, created_at, resolue_at").eq("chantier_id", chantierId),
+        supabase.from("interventions").select("id, heure_ouverture, heure_fermeture, statut, created_at")
+          .eq("chantier_id", chantierId).gte("created_at", since30),
       ]);
       const logements = (logs.data ?? []) as any[];
       const trousseaux = (trs.data ?? []) as any[];
+      const nc = (ncs.data ?? []) as any[];
+      const iv = (intervs.data ?? []) as any[];
+
+      const ivTerm = iv.filter((i) => i.heure_fermeture);
+      const dureeMoy = ivTerm.length
+        ? Math.round(ivTerm.reduce((s, i) => s + (new Date(i.heure_fermeture).getTime() - new Date(i.heure_ouverture).getTime()), 0) / ivTerm.length / 60000)
+        : 0;
+      const cats: Record<string, number> = {};
+      nc.filter((n) => n.statut !== "cloturee" && n.statut !== "resolue")
+        .forEach((n) => { cats[n.categorie] = (cats[n.categorie] ?? 0) + 1; });
+
       setStats({
         logements: logements.length,
         ouverts: logements.filter((l) => ["ouverture_en_cours", "intervention_en_cours"].includes(l.statut)).length,
         interventions: logements.filter((l) => l.statut === "intervention_en_cours").length,
         bloques: logements.filter((l) => ["bloque", "impossible_securiser", "non_conforme"].includes(l.statut)).length,
+        sorties_ctrl: logements.filter((l) => l.statut === "sortie_a_controler").length,
         trousseaux: trousseaux.length,
         non_restitues: trousseaux.filter((t) => t.statut === "non_restitue").length,
+        nc_ouvertes: nc.filter((n) => n.statut === "ouverte" || n.statut === "en_cours").length,
+        nc_critiques: nc.filter((n) => (n.gravite === "critique" || n.gravite === "bloquante") && n.statut !== "cloturee" && n.statut !== "resolue").length,
+        nc_resolues_30j: nc.filter((n) => n.resolue_at && n.resolue_at >= since30).length,
+        duree_moy_min: dureeMoy,
+        interv_30j: iv.length,
       });
+      setNcParCat(cats);
     })();
   }, [chantierId]);
 
@@ -221,27 +244,59 @@ function DashboardTab({ chantierId }: { chantierId: string }) {
     { label: "Logements", value: stats.logements, icon: Home },
     { label: "Actuellement ouverts", value: stats.ouverts, icon: LogIn, color: "text-blue-600" },
     { label: "Interventions en cours", value: stats.interventions, icon: Wrench, color: "text-blue-600" },
-    { label: "Bloqués / NC", value: stats.bloques, icon: ClipboardList, color: "text-red-600" },
+    { label: "Sorties à contrôler", value: stats.sorties_ctrl, icon: LogOut, color: "text-orange-600" },
+    { label: "Bloqués / NC statut", value: stats.bloques, icon: ClipboardList, color: "text-red-600" },
     { label: "Trousseaux enregistrés", value: stats.trousseaux, icon: KeyRound },
     { label: "Clés non restituées", value: stats.non_restitues, icon: KeyRound, color: "text-red-600" },
+    { label: "NC ouvertes", value: stats.nc_ouvertes, icon: FileWarning, color: "text-orange-600" },
+    { label: "NC critiques/bloquantes", value: stats.nc_critiques, icon: AlertTriangle, color: "text-red-600" },
+    { label: "NC résolues (30j)", value: stats.nc_resolues_30j, icon: Check, color: "text-emerald-600" },
+    { label: "Interventions (30j)", value: stats.interv_30j, icon: PlayCircle },
+    { label: "Durée moy. intervention", value: stats.duree_moy_min ? `${stats.duree_moy_min} min` : "—", icon: StopCircle },
   ];
 
+  const catLabels: Record<string, string> = {
+    securite: "Sécurité", cle: "Clés", logement: "Logement", proprete: "Propreté", autre: "Autre",
+  };
+  const totalCat = Object.values(ncParCat).reduce((a, b) => a + b, 0);
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-      {kpis.map((k) => (
-        <Card key={k.label}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="text-xs text-muted-foreground">{k.label}</div>
-              <k.icon className={`size-4 ${k.color ?? "text-muted-foreground"}`} />
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        {kpis.map((k) => (
+          <Card key={k.label}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-muted-foreground">{k.label}</div>
+                <k.icon className={`size-4 ${k.color ?? "text-muted-foreground"}`} />
+              </div>
+              <div className={`mt-2 font-display text-2xl font-semibold ${k.color ?? ""}`}>{k.value}</div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <Card>
+        <CardHeader><CardTitle className="text-base">Non-conformités ouvertes par catégorie</CardTitle></CardHeader>
+        <CardContent>
+          {totalCat === 0 ? (
+            <div className="text-sm text-muted-foreground">Aucune non-conformité ouverte.</div>
+          ) : (
+            <div className="space-y-2">
+              {Object.entries(ncParCat).map(([cat, n]) => {
+                const pct = Math.round((n / totalCat) * 100);
+                return (
+                  <div key={cat}>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span>{catLabels[cat] ?? cat}</span><span className="text-muted-foreground">{n} · {pct}%</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded overflow-hidden">
+                      <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            <div className={`mt-2 font-display text-2xl font-semibold ${k.color ?? ""}`}>{k.value}</div>
-          </CardContent>
-        </Card>
-      ))}
-      <Card className="col-span-2 md:col-span-3">
-        <CardContent className="p-4 text-xs text-muted-foreground">
-          Les indicateurs détaillés (temps d'attente, sorties à contrôler, incidents) apparaîtront au fil des Lots 2 et 3.
+          )}
         </CardContent>
       </Card>
     </div>
@@ -1664,5 +1719,383 @@ function InterventionRow({ iv, logements, canOperate, onDone, chantierId }: {
         </Dialog>
       )}
     </div>
+  );
+}
+
+/* ---------- NON-CONFORMITÉS ---------- */
+type NonConformite = {
+  id: string; chantier_id: string; logement_id: string | null;
+  intervention_id: string | null; trousseau_id: string | null;
+  categorie: "securite" | "cle" | "logement" | "proprete" | "autre";
+  gravite: "mineure" | "majeure" | "critique" | "bloquante";
+  statut: "ouverte" | "en_cours" | "resolue" | "cloturee";
+  titre: string; description: string | null; photos: string[];
+  cree_par: string | null; resolue_par: string | null;
+  resolution: string | null; resolue_at: string | null; created_at: string;
+};
+
+const NC_CAT_LABEL: Record<string, string> = {
+  securite: "Sécurité", cle: "Clés", logement: "Logement", proprete: "Propreté", autre: "Autre",
+};
+const NC_GRAV_LABEL: Record<string, string> = {
+  mineure: "Mineure", majeure: "Majeure", critique: "Critique", bloquante: "Bloquante",
+};
+const NC_GRAV_COLOR: Record<string, string> = {
+  mineure: "bg-slate-500/15 text-slate-700 border-slate-500/30",
+  majeure: "bg-orange-500/15 text-orange-700 border-orange-500/30",
+  critique: "bg-red-500/15 text-red-700 border-red-500/30",
+  bloquante: "bg-red-500/15 text-red-700 border-red-500/30",
+};
+const NC_STATUT_LABEL: Record<string, string> = {
+  ouverte: "Ouverte", en_cours: "En cours", resolue: "Résolue", cloturee: "Clôturée",
+};
+
+function NonConformitesTab({ chantierId, userId, canManage }: {
+  chantierId: string; userId: string | null; canManage: boolean;
+}) {
+  const [rows, setRows] = useState<NonConformite[]>([]);
+  const [logements, setLogements] = useState<Record<string, string>>({});
+  const [reload, setReload] = useState(0);
+  const [filterStatut, setFilterStatut] = useState<string>("actives");
+  const [filterCat, setFilterCat] = useState<string>("toutes");
+  const [openCreate, setOpenCreate] = useState(false);
+  const [selected, setSelected] = useState<NonConformite | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const [nc, lg] = await Promise.all([
+        supabase.from("non_conformites").select("*").eq("chantier_id", chantierId).order("created_at", { ascending: false }),
+        supabase.from("logements").select("id, numero, niveau_id, niveaux!inner(bloc_id, blocs!inner(batiment_id, batiments!inner(chantier_id)))")
+          .eq("niveaux.blocs.batiments.chantier_id", chantierId),
+      ]);
+      setRows((nc.data ?? []) as NonConformite[]);
+      const map: Record<string, string> = {};
+      ((lg.data ?? []) as any[]).forEach((l) => { map[l.id] = l.numero; });
+      setLogements(map);
+    })();
+  }, [chantierId, reload]);
+
+  const filtered = useMemo(() => {
+    return rows.filter((r) => {
+      if (filterStatut === "actives" && (r.statut === "resolue" || r.statut === "cloturee")) return false;
+      if (filterStatut !== "actives" && filterStatut !== "toutes" && r.statut !== filterStatut) return false;
+      if (filterCat !== "toutes" && r.categorie !== filterCat) return false;
+      return true;
+    });
+  }, [rows, filterStatut, filterCat]);
+
+  const changeStatut = async (id: string, statut: string) => {
+    const patch: any = { statut };
+    if (statut === "resolue" || statut === "cloturee") {
+      patch.resolue_at = new Date().toISOString();
+      patch.resolue_par = userId;
+    }
+    const { error } = await supabase.from("non_conformites").update(patch).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Statut mis à jour");
+    setReload((r) => r + 1);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2 items-end justify-between">
+        <div className="flex flex-wrap gap-2">
+          <div>
+            <Label className="text-xs">Statut</Label>
+            <Select value={filterStatut} onValueChange={setFilterStatut}>
+              <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="actives">Actives (ouvertes/en cours)</SelectItem>
+                <SelectItem value="toutes">Toutes</SelectItem>
+                <SelectItem value="ouverte">Ouvertes</SelectItem>
+                <SelectItem value="en_cours">En cours</SelectItem>
+                <SelectItem value="resolue">Résolues</SelectItem>
+                <SelectItem value="cloturee">Clôturées</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Catégorie</Label>
+            <Select value={filterCat} onValueChange={setFilterCat}>
+              <SelectTrigger className="h-9 w-40"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="toutes">Toutes</SelectItem>
+                {Object.entries(NC_CAT_LABEL).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <Button onClick={() => setOpenCreate(true)}><Plus className="size-4 mr-1" /> Déclarer une non-conformité</Button>
+      </div>
+
+      <Card>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Titre</TableHead>
+                <TableHead>Logement</TableHead>
+                <TableHead>Catégorie</TableHead>
+                <TableHead>Gravité</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead>Photos</TableHead>
+                <TableHead />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.length === 0 ? (
+                <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-6">Aucune non-conformité.</TableCell></TableRow>
+              ) : filtered.map((n) => (
+                <TableRow key={n.id}>
+                  <TableCell className="text-xs">{new Date(n.created_at).toLocaleDateString("fr-FR")}</TableCell>
+                  <TableCell className="font-medium">{n.titre}</TableCell>
+                  <TableCell className="text-sm">{n.logement_id ? logements[n.logement_id] ?? "—" : "—"}</TableCell>
+                  <TableCell><Badge variant="outline">{NC_CAT_LABEL[n.categorie]}</Badge></TableCell>
+                  <TableCell><Badge className={NC_GRAV_COLOR[n.gravite]}>{NC_GRAV_LABEL[n.gravite]}</Badge></TableCell>
+                  <TableCell>
+                    {canManage ? (
+                      <Select value={n.statut} onValueChange={(v) => changeStatut(n.id, v)}>
+                        <SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(NC_STATUT_LABEL).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Badge variant="outline">{NC_STATUT_LABEL[n.statut]}</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{n.photos.length}</TableCell>
+                  <TableCell><Button size="sm" variant="outline" onClick={() => setSelected(n)}>Détail</Button></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <CreateNcDialog
+        open={openCreate} onOpenChange={setOpenCreate}
+        chantierId={chantierId} userId={userId}
+        onDone={() => { setOpenCreate(false); setReload((r) => r + 1); }}
+      />
+
+      <NcDetailDialog
+        nc={selected} onOpenChange={(o) => !o && setSelected(null)}
+        chantierId={chantierId} userId={userId} canManage={canManage}
+        logementLabel={selected?.logement_id ? logements[selected.logement_id] ?? null : null}
+        onDone={() => { setSelected(null); setReload((r) => r + 1); }}
+      />
+    </div>
+  );
+}
+
+function CreateNcDialog({ open, onOpenChange, chantierId, userId, onDone, defaultLogementId, defaultInterventionId }: {
+  open: boolean; onOpenChange: (o: boolean) => void;
+  chantierId: string; userId: string | null; onDone: () => void;
+  defaultLogementId?: string | null; defaultInterventionId?: string | null;
+}) {
+  const [titre, setTitre] = useState("");
+  const [description, setDescription] = useState("");
+  const [categorie, setCategorie] = useState<NonConformite["categorie"]>("logement");
+  const [gravite, setGravite] = useState<NonConformite["gravite"]>("mineure");
+  const [logementId, setLogementId] = useState<string>(defaultLogementId ?? "");
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [logements, setLogements] = useState<{ id: string; numero: string }[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      const { data } = await supabase
+        .from("logements")
+        .select("id, numero, niveau_id, niveaux!inner(bloc_id, blocs!inner(batiment_id, batiments!inner(chantier_id)))")
+        .eq("niveaux.blocs.batiments.chantier_id", chantierId)
+        .order("numero");
+      setLogements(((data ?? []) as any[]).map((l) => ({ id: l.id, numero: l.numero })));
+    })();
+    setLogementId(defaultLogementId ?? "");
+  }, [open, chantierId, defaultLogementId]);
+
+  const reset = () => {
+    setTitre(""); setDescription(""); setCategorie("logement");
+    setGravite("mineure"); setPhotos([]); setLogementId("");
+  };
+
+  const submit = async () => {
+    if (!titre.trim()) return toast.error("Titre requis");
+    setSaving(true);
+    const { error } = await supabase.from("non_conformites").insert({
+      chantier_id: chantierId, titre: titre.trim(),
+      description: description.trim() || null,
+      categorie, gravite, photos,
+      logement_id: logementId || null,
+      intervention_id: defaultInterventionId ?? null,
+      cree_par: userId,
+    } as any);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Non-conformité déclarée");
+    reset(); onDone();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) reset(); }}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>Déclarer une non-conformité</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Titre</Label>
+            <Input value={titre} onChange={(e) => setTitre(e.target.value)} placeholder="Ex: Serrure endommagée" />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>Catégorie</Label>
+              <Select value={categorie} onValueChange={(v) => setCategorie(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(NC_CAT_LABEL).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Gravité</Label>
+              <Select value={gravite} onValueChange={(v) => setGravite(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(NC_GRAV_LABEL).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <Label>Logement concerné (optionnel)</Label>
+            <Select value={logementId || "none"} onValueChange={(v) => setLogementId(v === "none" ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">—</SelectItem>
+                {logements.map((l) => <SelectItem key={l.id} value={l.id}>{l.numero}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Description</Label>
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} maxLength={1000} />
+          </div>
+          <PhotoUploader paths={photos} onChange={setPhotos} chantierId={chantierId} label="Photos" />
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Annuler</Button>
+          <Button onClick={submit} disabled={saving}>Déclarer</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function NcDetailDialog({ nc, onOpenChange, chantierId, userId, canManage, logementLabel, onDone }: {
+  nc: NonConformite | null; onOpenChange: (o: boolean) => void;
+  chantierId: string; userId: string | null; canManage: boolean;
+  logementLabel: string | null; onDone: () => void;
+}) {
+  const [resolution, setResolution] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [urls, setUrls] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setResolution(nc?.resolution ?? "");
+    if (!nc) return;
+    (async () => {
+      const next: Record<string, string> = {};
+      for (const p of nc.photos) {
+        const { data } = await supabase.storage.from("opr-photos").createSignedUrl(p, 3600);
+        if (data?.signedUrl) next[p] = data.signedUrl;
+      }
+      setUrls(next);
+    })();
+  }, [nc]);
+
+  if (!nc) return null;
+
+  const resoudre = async (statut: "resolue" | "cloturee") => {
+    setSaving(true);
+    const { error } = await supabase.from("non_conformites").update({
+      statut, resolution: resolution.trim() || null,
+      resolue_at: new Date().toISOString(), resolue_par: userId,
+    } as any).eq("id", nc.id);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success(statut === "resolue" ? "Non-conformité résolue" : "Non-conformité clôturée");
+    onDone();
+  };
+
+  const supprimer = async () => {
+    if (!confirm("Supprimer cette non-conformité ?")) return;
+    const { error } = await supabase.from("non_conformites").delete().eq("id", nc.id);
+    if (error) return toast.error(error.message);
+    toast.success("Supprimée");
+    onDone();
+  };
+
+  return (
+    <Dialog open={!!nc} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <FileWarning className="size-4" /> {nc.titre}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2 text-xs">
+            <Badge variant="outline">{NC_CAT_LABEL[nc.categorie]}</Badge>
+            <Badge className={NC_GRAV_COLOR[nc.gravite]}>{NC_GRAV_LABEL[nc.gravite]}</Badge>
+            <Badge variant="outline">{NC_STATUT_LABEL[nc.statut]}</Badge>
+            {logementLabel && <Badge variant="secondary">Logement {logementLabel}</Badge>}
+            <span className="text-muted-foreground">Déclarée le {new Date(nc.created_at).toLocaleString("fr-FR")}</span>
+          </div>
+          {nc.description && (
+            <div>
+              <Label className="text-xs">Description</Label>
+              <div className="text-sm whitespace-pre-wrap">{nc.description}</div>
+            </div>
+          )}
+          {nc.photos.length > 0 && (
+            <div>
+              <Label className="text-xs">Photos</Label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {nc.photos.map((p) => (
+                  <a key={p} href={urls[p]} target="_blank" rel="noreferrer">
+                    {urls[p] ? <img src={urls[p]} className="size-24 object-cover rounded border" alt="" /> : <div className="size-24 bg-muted rounded" />}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+          {nc.resolue_at ? (
+            <div className="rounded border p-2 bg-muted/40">
+              <div className="text-xs text-muted-foreground">Résolue le {new Date(nc.resolue_at).toLocaleString("fr-FR")}</div>
+              {nc.resolution && <div className="text-sm mt-1 whitespace-pre-wrap">{nc.resolution}</div>}
+            </div>
+          ) : canManage ? (
+            <div>
+              <Label>Notes de résolution</Label>
+              <Textarea value={resolution} onChange={(e) => setResolution(e.target.value)} rows={3} maxLength={1000} />
+            </div>
+          ) : null}
+        </div>
+        <DialogFooter className="gap-2 flex-wrap">
+          {canManage && !nc.resolue_at && (
+            <>
+              <Button variant="outline" onClick={() => resoudre("resolue")} disabled={saving}><Check className="size-4 mr-1" /> Marquer résolue</Button>
+              <Button onClick={() => resoudre("cloturee")} disabled={saving}>Clôturer</Button>
+            </>
+          )}
+          {canManage && (
+            <Button variant="ghost" onClick={supprimer} className="text-red-600"><Trash2 className="size-4 mr-1" /> Supprimer</Button>
+          )}
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Fermer</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
