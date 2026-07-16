@@ -356,7 +356,7 @@ function StatistiquesPage() {
                 </thead>
                 <tbody>
                   {matStats.map((r) => (
-                    <>
+                    <Fragment key={r.entrepriseId}>
                       {r.parMateriel.map((m, i) => (
                         <tr key={r.entrepriseId + m.nom} className="border-b border-border/50">
                           <td className="py-2">{i === 0 ? <span className="font-medium">{r.entreprise}</span> : null}</td>
@@ -365,13 +365,13 @@ function StatistiquesPage() {
                           <td className="py-2 text-right tabular-nums">{m.nb}</td>
                         </tr>
                       ))}
-                      <tr key={r.entrepriseId + "_total"} className="border-b bg-muted/30">
+                      <tr className="border-b bg-muted/30">
                         <td className="py-2"></td>
                         <td className="py-2 font-medium">Total</td>
                         <td className="py-2 text-right font-semibold tabular-nums">{r.totalHeures} h</td>
                         <td className="py-2 text-right font-semibold tabular-nums">{r.nbReservations}</td>
                       </tr>
-                    </>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
