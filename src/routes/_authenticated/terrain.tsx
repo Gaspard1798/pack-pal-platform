@@ -453,3 +453,66 @@ function VenuePhotoThumb({ path }: { path: string }) {
   );
 }
 
+function toLocalInputValue(d: Date) {
+  const tz = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - tz).toISOString().slice(0, 16);
+}
+
+function CheckinDialog({
+  defaultDate, onConfirm,
+}: { defaultDate: Date; onConfirm: (iso?: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(() => toLocalInputValue(new Date()));
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => {
+      setOpen(o);
+      if (o) setValue(toLocalInputValue(new Date()));
+    }}>
+      <DialogTrigger asChild>
+        <Button size="sm"><LogIn className="size-4" /> Arrivée</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Enregistrer l'arrivée</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="text-xs text-muted-foreground">
+            Créneau prévu : {defaultDate.toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Heure d'arrivée</Label>
+            <Input
+              type="datetime-local"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              type="button"
+              onClick={() => setValue(toLocalInputValue(new Date()))}
+            >
+              Maintenant
+            </Button>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
+          <Button
+            onClick={() => {
+              const iso = value ? new Date(value).toISOString() : new Date().toISOString();
+              onConfirm(iso);
+              setOpen(false);
+            }}
+          >
+            Confirmer
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
