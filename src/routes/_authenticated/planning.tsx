@@ -241,7 +241,12 @@ function PlanningPage() {
   // Group by jour (vues semaine/mois)
   const groupedDays = useMemo(() => {
     const byDay = new Map<string, Demande[]>();
-    for (const d of demandes) {
+    const filtered = aireFilter === "all"
+      ? demandes
+      : aireFilter === "_none"
+        ? demandes.filter((d) => !d.aire_id)
+        : demandes.filter((d) => d.aire_id === aireFilter);
+    for (const d of filtered) {
       const key = toISODate(new Date(d.debut));
       if (!byDay.has(key)) byDay.set(key, []);
       byDay.get(key)!.push(d);
@@ -250,7 +255,7 @@ function PlanningPage() {
       arr.sort((a, b) => new Date(a.debut).getTime() - new Date(b.debut).getTime());
     }
     return [...byDay.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  }, [demandes]);
+  }, [demandes, aireFilter]);
 
   const aireName = (id: string | null) => id ? (aires.find((a) => a.id === id)?.nom ?? "—") : "Sans aire";
 
