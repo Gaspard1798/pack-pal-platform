@@ -377,6 +377,20 @@ function NonConformiteDialog({
               </label>
             ))}
           </div>
+          {selected.includes("Retard") && (
+            <div className="space-y-2">
+              <Label htmlFor="nc-retard">Durée du retard (minutes)</Label>
+              <Input
+                id="nc-retard"
+                type="number"
+                min={0}
+                inputMode="numeric"
+                value={retardMin}
+                onChange={(e) => setRetardMin(e.target.value)}
+                placeholder="Ex. 30"
+              />
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="nc-com">Commentaire</Label>
             <Textarea id="nc-com" value={commentaire}
