@@ -177,6 +177,7 @@ function TerrainPage() {
               aireName={aireName(d.aire_id)}
               onCheckin={(iso) => onCheckin(d, iso)}
               onCheckout={() => onCheckout(d)}
+              onClose={() => onCloseDemande(d)}
               onChanged={loadData}
             />
           ))}
