@@ -120,6 +120,56 @@ export type Database = {
         }
         Relationships: []
       }
+      contenants: {
+        Row: {
+          actif: boolean
+          chantier_id: string
+          created_at: string
+          emplacement: string | null
+          id: string
+          notes: string | null
+          reference: string
+          type: Database["public"]["Enums"]["contenant_type"]
+          type_dechet: Database["public"]["Enums"]["dechet_type"]
+          updated_at: string
+          volume_m3: number | null
+        }
+        Insert: {
+          actif?: boolean
+          chantier_id: string
+          created_at?: string
+          emplacement?: string | null
+          id?: string
+          notes?: string | null
+          reference: string
+          type: Database["public"]["Enums"]["contenant_type"]
+          type_dechet: Database["public"]["Enums"]["dechet_type"]
+          updated_at?: string
+          volume_m3?: number | null
+        }
+        Update: {
+          actif?: boolean
+          chantier_id?: string
+          created_at?: string
+          emplacement?: string | null
+          id?: string
+          notes?: string | null
+          reference?: string
+          type?: Database["public"]["Enums"]["contenant_type"]
+          type_dechet?: Database["public"]["Enums"]["dechet_type"]
+          updated_at?: string
+          volume_m3?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contenants_chantier_id_fkey"
+            columns: ["chantier_id"]
+            isOneToOne: false
+            referencedRelation: "chantiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       demande_materiels: {
         Row: {
           demande_id: string
@@ -373,6 +423,126 @@ export type Database = {
           },
         ]
       }
+      rotation_validations: {
+        Row: {
+          commentaire: string | null
+          created_at: string
+          effectuee_le: string
+          id: string
+          photos: string[] | null
+          poids_estime_kg: number | null
+          rotation_id: string
+          validee_par: string | null
+        }
+        Insert: {
+          commentaire?: string | null
+          created_at?: string
+          effectuee_le?: string
+          id?: string
+          photos?: string[] | null
+          poids_estime_kg?: number | null
+          rotation_id: string
+          validee_par?: string | null
+        }
+        Update: {
+          commentaire?: string | null
+          created_at?: string
+          effectuee_le?: string
+          id?: string
+          photos?: string[] | null
+          poids_estime_kg?: number | null
+          rotation_id?: string
+          validee_par?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rotation_validations_rotation_id_fkey"
+            columns: ["rotation_id"]
+            isOneToOne: false
+            referencedRelation: "rotations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rotations: {
+        Row: {
+          aire_id: string | null
+          chantier_id: string
+          commentaire: string | null
+          contenant_id: string | null
+          contenant_type: Database["public"]["Enums"]["contenant_type"]
+          created_at: string
+          debut: string
+          duree_min: number
+          id: string
+          prestataire_id: string
+          raison_refus: string | null
+          statut: Database["public"]["Enums"]["rotation_statut"]
+          type_dechet: Database["public"]["Enums"]["dechet_type"]
+          type_operation: Database["public"]["Enums"]["rotation_operation"]
+          updated_at: string
+          volume_m3: number | null
+        }
+        Insert: {
+          aire_id?: string | null
+          chantier_id: string
+          commentaire?: string | null
+          contenant_id?: string | null
+          contenant_type: Database["public"]["Enums"]["contenant_type"]
+          created_at?: string
+          debut: string
+          duree_min?: number
+          id?: string
+          prestataire_id: string
+          raison_refus?: string | null
+          statut?: Database["public"]["Enums"]["rotation_statut"]
+          type_dechet: Database["public"]["Enums"]["dechet_type"]
+          type_operation?: Database["public"]["Enums"]["rotation_operation"]
+          updated_at?: string
+          volume_m3?: number | null
+        }
+        Update: {
+          aire_id?: string | null
+          chantier_id?: string
+          commentaire?: string | null
+          contenant_id?: string | null
+          contenant_type?: Database["public"]["Enums"]["contenant_type"]
+          created_at?: string
+          debut?: string
+          duree_min?: number
+          id?: string
+          prestataire_id?: string
+          raison_refus?: string | null
+          statut?: Database["public"]["Enums"]["rotation_statut"]
+          type_dechet?: Database["public"]["Enums"]["dechet_type"]
+          type_operation?: Database["public"]["Enums"]["rotation_operation"]
+          updated_at?: string
+          volume_m3?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rotations_aire_id_fkey"
+            columns: ["aire_id"]
+            isOneToOne: false
+            referencedRelation: "aires"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rotations_chantier_id_fkey"
+            columns: ["chantier_id"]
+            isOneToOne: false
+            referencedRelation: "chantiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rotations_contenant_id_fkey"
+            columns: ["contenant_id"]
+            isOneToOne: false
+            referencedRelation: "contenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -466,11 +636,20 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "conducteur" | "prestataire" | "operateur"
+      contenant_type: "benne" | "bac" | "bigbag"
+      dechet_type: "dib" | "gravats" | "tri" | "did"
       demande_statut:
         | "en_cours"
         | "acceptee"
         | "refusee"
         | "modifiee"
+        | "terminee"
+        | "annulee"
+      rotation_operation: "pose" | "rotation" | "enlevement"
+      rotation_statut:
+        | "en_cours"
+        | "acceptee"
+        | "refusee"
         | "terminee"
         | "annulee"
     }
@@ -601,11 +780,21 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "conducteur", "prestataire", "operateur"],
+      contenant_type: ["benne", "bac", "bigbag"],
+      dechet_type: ["dib", "gravats", "tri", "did"],
       demande_statut: [
         "en_cours",
         "acceptee",
         "refusee",
         "modifiee",
+        "terminee",
+        "annulee",
+      ],
+      rotation_operation: ["pose", "rotation", "enlevement"],
+      rotation_statut: [
+        "en_cours",
+        "acceptee",
+        "refusee",
         "terminee",
         "annulee",
       ],
