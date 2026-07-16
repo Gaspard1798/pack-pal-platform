@@ -254,7 +254,7 @@ function DemandeCard({
 
         <div className="flex flex-wrap gap-2">
           {!arrived && (
-            <Button size="sm" onClick={onCheckin}><LogIn className="size-4" /> Arrivée</Button>
+            <CheckinDialog defaultDate={start} onConfirm={onCheckin} />
           )}
           {arrived && !departed && (
             <Button size="sm" variant="secondary" onClick={onCheckout}>
