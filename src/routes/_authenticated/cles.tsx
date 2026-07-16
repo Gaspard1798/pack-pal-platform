@@ -192,26 +192,51 @@ function Placeholder({ title, hint }: { title: string; hint: string }) {
 function DashboardTab({ chantierId }: { chantierId: string }) {
   const [stats, setStats] = useState({
     logements: 0, ouverts: 0, interventions: 0, bloques: 0,
-    trousseaux: 0, non_restitues: 0,
+    sorties_ctrl: 0, trousseaux: 0, non_restitues: 0,
+    nc_ouvertes: 0, nc_critiques: 0, nc_resolues_30j: 0,
+    duree_moy_min: 0, interv_30j: 0,
   });
+  const [ncParCat, setNcParCat] = useState<Record<string, number>>({});
 
   useEffect(() => {
     (async () => {
-      const [logs, trs] = await Promise.all([
+      const since30 = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+      const [logs, trs, ncs, intervs] = await Promise.all([
         supabase.from("logements").select("id, statut, niveau_id, niveaux!inner(bloc_id, blocs!inner(batiment_id, batiments!inner(chantier_id)))")
           .eq("niveaux.blocs.batiments.chantier_id", chantierId),
         supabase.from("trousseaux").select("id, statut").eq("chantier_id", chantierId),
+        supabase.from("non_conformites").select("id, statut, gravite, categorie, created_at, resolue_at").eq("chantier_id", chantierId),
+        supabase.from("interventions").select("id, heure_ouverture, heure_fermeture, statut, created_at")
+          .eq("chantier_id", chantierId).gte("created_at", since30),
       ]);
       const logements = (logs.data ?? []) as any[];
       const trousseaux = (trs.data ?? []) as any[];
+      const nc = (ncs.data ?? []) as any[];
+      const iv = (intervs.data ?? []) as any[];
+
+      const ivTerm = iv.filter((i) => i.heure_fermeture);
+      const dureeMoy = ivTerm.length
+        ? Math.round(ivTerm.reduce((s, i) => s + (new Date(i.heure_fermeture).getTime() - new Date(i.heure_ouverture).getTime()), 0) / ivTerm.length / 60000)
+        : 0;
+      const cats: Record<string, number> = {};
+      nc.filter((n) => n.statut !== "cloturee" && n.statut !== "resolue")
+        .forEach((n) => { cats[n.categorie] = (cats[n.categorie] ?? 0) + 1; });
+
       setStats({
         logements: logements.length,
         ouverts: logements.filter((l) => ["ouverture_en_cours", "intervention_en_cours"].includes(l.statut)).length,
         interventions: logements.filter((l) => l.statut === "intervention_en_cours").length,
         bloques: logements.filter((l) => ["bloque", "impossible_securiser", "non_conforme"].includes(l.statut)).length,
+        sorties_ctrl: logements.filter((l) => l.statut === "sortie_a_controler").length,
         trousseaux: trousseaux.length,
         non_restitues: trousseaux.filter((t) => t.statut === "non_restitue").length,
+        nc_ouvertes: nc.filter((n) => n.statut === "ouverte" || n.statut === "en_cours").length,
+        nc_critiques: nc.filter((n) => (n.gravite === "critique" || n.gravite === "bloquante") && n.statut !== "cloturee" && n.statut !== "resolue").length,
+        nc_resolues_30j: nc.filter((n) => n.resolue_at && n.resolue_at >= since30).length,
+        duree_moy_min: dureeMoy,
+        interv_30j: iv.length,
       });
+      setNcParCat(cats);
     })();
   }, [chantierId]);
 
@@ -219,27 +244,59 @@ function DashboardTab({ chantierId }: { chantierId: string }) {
     { label: "Logements", value: stats.logements, icon: Home },
     { label: "Actuellement ouverts", value: stats.ouverts, icon: LogIn, color: "text-blue-600" },
     { label: "Interventions en cours", value: stats.interventions, icon: Wrench, color: "text-blue-600" },
-    { label: "Bloqués / NC", value: stats.bloques, icon: ClipboardList, color: "text-red-600" },
+    { label: "Sorties à contrôler", value: stats.sorties_ctrl, icon: LogOut, color: "text-orange-600" },
+    { label: "Bloqués / NC statut", value: stats.bloques, icon: ClipboardList, color: "text-red-600" },
     { label: "Trousseaux enregistrés", value: stats.trousseaux, icon: KeyRound },
     { label: "Clés non restituées", value: stats.non_restitues, icon: KeyRound, color: "text-red-600" },
+    { label: "NC ouvertes", value: stats.nc_ouvertes, icon: FileWarning, color: "text-orange-600" },
+    { label: "NC critiques/bloquantes", value: stats.nc_critiques, icon: AlertTriangle, color: "text-red-600" },
+    { label: "NC résolues (30j)", value: stats.nc_resolues_30j, icon: Check, color: "text-emerald-600" },
+    { label: "Interventions (30j)", value: stats.interv_30j, icon: PlayCircle },
+    { label: "Durée moy. intervention", value: stats.duree_moy_min ? `${stats.duree_moy_min} min` : "—", icon: StopCircle },
   ];
 
+  const catLabels: Record<string, string> = {
+    securite: "Sécurité", cle: "Clés", logement: "Logement", proprete: "Propreté", autre: "Autre",
+  };
+  const totalCat = Object.values(ncParCat).reduce((a, b) => a + b, 0);
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-      {kpis.map((k) => (
-        <Card key={k.label}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="text-xs text-muted-foreground">{k.label}</div>
-              <k.icon className={`size-4 ${k.color ?? "text-muted-foreground"}`} />
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        {kpis.map((k) => (
+          <Card key={k.label}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-muted-foreground">{k.label}</div>
+                <k.icon className={`size-4 ${k.color ?? "text-muted-foreground"}`} />
+              </div>
+              <div className={`mt-2 font-display text-2xl font-semibold ${k.color ?? ""}`}>{k.value}</div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <Card>
+        <CardHeader><CardTitle className="text-base">Non-conformités ouvertes par catégorie</CardTitle></CardHeader>
+        <CardContent>
+          {totalCat === 0 ? (
+            <div className="text-sm text-muted-foreground">Aucune non-conformité ouverte.</div>
+          ) : (
+            <div className="space-y-2">
+              {Object.entries(ncParCat).map(([cat, n]) => {
+                const pct = Math.round((n / totalCat) * 100);
+                return (
+                  <div key={cat}>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span>{catLabels[cat] ?? cat}</span><span className="text-muted-foreground">{n} · {pct}%</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded overflow-hidden">
+                      <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            <div className={`mt-2 font-display text-2xl font-semibold ${k.color ?? ""}`}>{k.value}</div>
-          </CardContent>
-        </Card>
-      ))}
-      <Card className="col-span-2 md:col-span-3">
-        <CardContent className="p-4 text-xs text-muted-foreground">
-          Les indicateurs détaillés (temps d'attente, sorties à contrôler, incidents) apparaîtront au fil des Lots 2 et 3.
+          )}
         </CardContent>
       </Card>
     </div>
