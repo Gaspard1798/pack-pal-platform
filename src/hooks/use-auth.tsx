@@ -73,5 +73,6 @@ export const ROLE_LABELS: Record<AppRole, string> = {
   admin: "Administrateur",
   conducteur: "Conducteur de travaux",
   prestataire: "Prestataire",
-  operateur: "Opérateur terrain",
+  operateur: "Opérateur / Coureur",
+  gestionnaire_cles: "Gestionnaire de clés",
 };
