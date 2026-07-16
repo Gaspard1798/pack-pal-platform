@@ -305,7 +305,7 @@ function PlanningPage() {
         `${fmtTime(s)} – ${fmtTime(e)}`,
         aireName(d.aire_id),
         d.nature,
-        (STATUT_COLOR[d.statut] ? d.statut.replace("_", " ") : d.statut),
+        (STATUT_COLOR[d.statut] ? STATUT_LABEL[d.statut] ?? d.statut : d.statut),
         conflits || "—",
       ];
     });
@@ -402,7 +402,7 @@ function PlanningPage() {
                 <Button key={s} size="sm" variant={statutFilter === s ? "default" : "outline"}
                   className={`h-7 capitalize ${statutFilter === s ? "" : STATUT_COLOR[s]}`}
                   onClick={() => setStatutFilter(s)}>
-                  {s.replace("_", " ")} ({count})
+                  {STATUT_LABEL[s] ?? s} ({count})
                 </Button>
               );
             })}
@@ -518,7 +518,7 @@ function PlanningPage() {
                 <Button key={s} size="sm" variant={statutFilter === s ? "default" : "outline"}
                   className={`h-7 capitalize ${statutFilter === s ? "" : STATUT_COLOR[s]}`}
                   onClick={() => setStatutFilter(s)}>
-                  {s.replace("_", " ")} ({count})
+                  {STATUT_LABEL[s] ?? s} ({count})
                 </Button>
               );
             })}
@@ -575,7 +575,7 @@ function Slot({ d, aireConflict, matConflicts, extra }: {
     <div className={`rounded-md border px-3 py-2 text-sm ${STATUT_COLOR[d.statut] ?? "border-border"}`}>
       <div className="flex items-center justify-between gap-2">
         <span className="font-medium">{fmt(start)} – {fmt(end)}</span>
-        <Badge variant="outline" className="text-xs capitalize">{d.statut.replace("_", " ")}</Badge>
+        <Badge variant="outline" className="text-xs capitalize">{STATUT_LABEL[d.statut] ?? d.statut}</Badge>
       </div>
       <div className="text-xs opacity-80">
         {d.nature}{extra && <span className="ml-1 font-medium">{extra}</span>}
