@@ -321,6 +321,64 @@ function StatistiquesPage() {
           </div>
         </>
       )}
+
+      {chantierId && !loading && matStats.length > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <div>
+              <CardTitle className="text-base">Utilisation matériel par entreprise</CardTitle>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Heures cumulées de moyens matériel réservés (durée réelle si pointée, sinon planifiée) — base de facturation.
+              </p>
+            </div>
+            <Button size="sm" variant="outline" onClick={exportMatCSV}>Export CSV</Button>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={matStats.map((r) => ({ entreprise: r.entreprise, heures: r.totalHeures }))}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+                <XAxis dataKey="entreprise" className="text-xs" />
+                <YAxis className="text-xs" />
+                <Tooltip cursor={{ fill: "var(--muted)" }} formatter={(v: number) => `${v} h`} />
+                <Bar dataKey="heures" name="Heures" radius={[4, 4, 0, 0]} fill="var(--accent)" />
+              </BarChart>
+            </ResponsiveContainer>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-xs text-muted-foreground">
+                  <tr className="border-b">
+                    <th className="py-2 text-left font-medium">Entreprise</th>
+                    <th className="py-2 text-left font-medium">Matériel</th>
+                    <th className="py-2 text-right font-medium">Heures</th>
+                    <th className="py-2 text-right font-medium">Réservations</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {matStats.map((r) => (
+                    <>
+                      {r.parMateriel.map((m, i) => (
+                        <tr key={r.entrepriseId + m.nom} className="border-b border-border/50">
+                          <td className="py-2">{i === 0 ? <span className="font-medium">{r.entreprise}</span> : null}</td>
+                          <td className="py-2">{m.nom}</td>
+                          <td className="py-2 text-right tabular-nums">{m.heures} h</td>
+                          <td className="py-2 text-right tabular-nums">{m.nb}</td>
+                        </tr>
+                      ))}
+                      <tr key={r.entrepriseId + "_total"} className="border-b bg-muted/30">
+                        <td className="py-2"></td>
+                        <td className="py-2 font-medium">Total</td>
+                        <td className="py-2 text-right font-semibold tabular-nums">{r.totalHeures} h</td>
+                        <td className="py-2 text-right font-semibold tabular-nums">{r.nbReservations}</td>
+                      </tr>
+                    </>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
