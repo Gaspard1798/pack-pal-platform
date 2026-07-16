@@ -73,6 +73,9 @@ function PlanningPage() {
   const [demandeMats, setDemandeMats] = useState<DemandeMat[]>([]);
   const [date, setDate] = useState<string>(toISODate(new Date()));
   const [mode, setMode] = useState<ViewMode>("jour");
+  const [aireFilter, setAireFilter] = useState<string>("all");
+
+  useEffect(() => { setAireFilter("all"); }, [chantierId]);
 
   const { start: rangeStart, end: rangeEnd } = useMemo(() => rangeFor(mode, date), [mode, date]);
 
@@ -238,7 +241,12 @@ function PlanningPage() {
   // Group by jour (vues semaine/mois)
   const groupedDays = useMemo(() => {
     const byDay = new Map<string, Demande[]>();
-    for (const d of demandes) {
+    const filtered = aireFilter === "all"
+      ? demandes
+      : aireFilter === "_none"
+        ? demandes.filter((d) => !d.aire_id)
+        : demandes.filter((d) => d.aire_id === aireFilter);
+    for (const d of filtered) {
       const key = toISODate(new Date(d.debut));
       if (!byDay.has(key)) byDay.set(key, []);
       byDay.get(key)!.push(d);
@@ -247,7 +255,7 @@ function PlanningPage() {
       arr.sort((a, b) => new Date(a.debut).getTime() - new Date(b.debut).getTime());
     }
     return [...byDay.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  }, [demandes]);
+  }, [demandes, aireFilter]);
 
   const aireName = (id: string | null) => id ? (aires.find((a) => a.id === id)?.nom ?? "—") : "Sans aire";
 
@@ -447,6 +455,28 @@ function PlanningPage() {
         </>
       ) : (
         <section className="space-y-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-medium text-muted-foreground mr-1">Filtrer par aire :</span>
+            <Button size="sm" variant={aireFilter === "all" ? "default" : "outline"}
+              className="h-7" onClick={() => setAireFilter("all")}>
+              Toutes ({demandes.length})
+            </Button>
+            {aires.map((a) => {
+              const count = demandes.filter((d) => d.aire_id === a.id).length;
+              return (
+                <Button key={a.id} size="sm" variant={aireFilter === a.id ? "default" : "outline"}
+                  className="h-7" onClick={() => setAireFilter(a.id)}>
+                  {a.nom} ({count})
+                </Button>
+              );
+            })}
+            {demandes.some((d) => !d.aire_id) && (
+              <Button size="sm" variant={aireFilter === "_none" ? "default" : "outline"}
+                className="h-7" onClick={() => setAireFilter("_none")}>
+                Sans aire ({demandes.filter((d) => !d.aire_id).length})
+              </Button>
+            )}
+          </div>
           {groupedDays.length === 0 ? (
             <p className="text-sm text-muted-foreground">Aucun créneau sur cette période.</p>
           ) : (
