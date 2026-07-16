@@ -849,6 +849,95 @@ export type Database = {
           },
         ]
       }
+      non_conformites: {
+        Row: {
+          categorie: string
+          chantier_id: string
+          created_at: string
+          cree_par: string | null
+          description: string | null
+          gravite: string
+          id: string
+          intervention_id: string | null
+          logement_id: string | null
+          photos: string[]
+          resolue_at: string | null
+          resolue_par: string | null
+          resolution: string | null
+          statut: string
+          titre: string
+          trousseau_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          categorie: string
+          chantier_id: string
+          created_at?: string
+          cree_par?: string | null
+          description?: string | null
+          gravite?: string
+          id?: string
+          intervention_id?: string | null
+          logement_id?: string | null
+          photos?: string[]
+          resolue_at?: string | null
+          resolue_par?: string | null
+          resolution?: string | null
+          statut?: string
+          titre: string
+          trousseau_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          categorie?: string
+          chantier_id?: string
+          created_at?: string
+          cree_par?: string | null
+          description?: string | null
+          gravite?: string
+          id?: string
+          intervention_id?: string | null
+          logement_id?: string | null
+          photos?: string[]
+          resolue_at?: string | null
+          resolue_par?: string | null
+          resolution?: string | null
+          statut?: string
+          titre?: string
+          trousseau_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "non_conformites_chantier_id_fkey"
+            columns: ["chantier_id"]
+            isOneToOne: false
+            referencedRelation: "chantiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "non_conformites_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "interventions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "non_conformites_logement_id_fkey"
+            columns: ["logement_id"]
+            isOneToOne: false
+            referencedRelation: "logements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "non_conformites_trousseau_id_fkey"
+            columns: ["trousseau_id"]
+            isOneToOne: false
+            referencedRelation: "trousseaux"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           chantier_id: string | null
