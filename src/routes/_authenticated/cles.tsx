@@ -531,7 +531,7 @@ function TrousseauDetail({
       created_by: userId,
     });
     if (!error && newStatut !== trousseau.statut) {
-      await supabase.from("trousseaux").update({ statut: newStatut }).eq("id", trousseau.id);
+      await supabase.from("trousseaux").update({ statut: newStatut as any }).eq("id", trousseau.id);
     }
     setSaving(false);
     if (error) return toast.error(error.message);
