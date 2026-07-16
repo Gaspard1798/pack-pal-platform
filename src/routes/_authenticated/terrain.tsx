@@ -260,7 +260,7 @@ function DemandeCard({
               <LogOut className="size-4" /> Départ
             </Button>
           )}
-          {canClose && !["terminee", "annulee", "refusee"].includes(d.statut) && (
+          {arrived && canClose && !["terminee", "annulee", "refusee"].includes(d.statut) && (
             <Button size="sm" variant="default" onClick={onClose}>
               <CheckCircle2 className="size-4" /> Valider réception
             </Button>
