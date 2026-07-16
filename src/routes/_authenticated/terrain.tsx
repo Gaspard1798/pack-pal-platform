@@ -44,16 +44,10 @@ const NC_OPTIONS = [
   "Autre",
 ];
 
-function toISODate(d: Date) {
-  const tz = d.getTimezoneOffset() * 60000;
-  return new Date(d.getTime() - tz).toISOString().slice(0, 10);
-}
-
 function TerrainPage() {
   const { user } = useAuth();
   const [chantiers, setChantiers] = useState<Chantier[]>([]);
   const [chantierId, setChantierId] = useState<string>("");
-  const [date, setDate] = useState(toISODate(new Date()));
   const [aires, setAires] = useState<Aire[]>([]);
   const [demandes, setDemandes] = useState<Demande[]>([]);
   const [venuesByDemande, setVenuesByDemande] = useState<Map<string, Venue>>(new Map());
@@ -70,36 +64,35 @@ function TerrainPage() {
   const loadData = async () => {
     if (!chantierId) return;
     setLoading(true);
-    const dayStart = new Date(date + "T00:00:00");
-    const dayEnd = new Date(dayStart.getTime() + 24 * 3600 * 1000);
 
     const [{ data: aireData }, { data: demandeData }] = await Promise.all([
       supabase.from("aires").select("id,nom").eq("chantier_id", chantierId).order("nom"),
       supabase.from("demandes").select("*")
         .eq("chantier_id", chantierId)
-        .gte("debut", new Date(dayStart.getTime() - 24 * 3600 * 1000).toISOString())
-        .lt("debut", dayEnd.toISOString())
+        .in("statut", ["en_cours", "acceptee", "modifiee"])
         .order("debut"),
     ]);
 
     setAires((aireData ?? []) as Aire[]);
-    const items = ((demandeData ?? []) as Demande[]).filter((d) => {
-      const s = new Date(d.debut).getTime();
-      return s >= dayStart.getTime() - 12 * 3600 * 1000 && s < dayEnd.getTime();
-    });
-    setDemandes(items);
+    const allDemandes = (demandeData ?? []) as Demande[];
 
-    if (items.length) {
-      const ids = items.map((d) => d.id);
+    let items: Demande[] = allDemandes;
+    if (allDemandes.length) {
+      const ids = allDemandes.map((d) => d.id);
       const { data: venues } = await supabase
         .from("venues").select("*").in("demande_id", ids);
       const map = new Map<string, Venue>();
       ((venues ?? []) as Venue[]).forEach((v) => map.set(v.demande_id, v));
       setVenuesByDemande(map);
-    } else setVenuesByDemande(new Map());
+      // On garde tout ce qui n'est pas encore parti (pas de depart_reel)
+      items = allDemandes.filter((d) => !map.get(d.id)?.depart_reel);
+    } else {
+      setVenuesByDemande(new Map());
+    }
+    setDemandes(items);
     setLoading(false);
   };
-  useEffect(() => { loadData(); }, [chantierId, date]);
+  useEffect(() => { loadData(); }, [chantierId]);
 
   const aireName = (id: string | null) => id ? (aires.find((a) => a.id === id)?.nom ?? "—") : "—";
 
@@ -164,16 +157,12 @@ function TerrainPage() {
             {chantiers.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
           </select>
         </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Date</Label>
-          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-44" />
-        </div>
       </div>
 
       {loading ? (
         <p className="text-sm text-muted-foreground">Chargement…</p>
       ) : sorted.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Aucun créneau prévu pour cette date.</p>
+        <p className="text-sm text-muted-foreground">Aucune livraison en attente de traitement.</p>
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {sorted.map((d) => (
