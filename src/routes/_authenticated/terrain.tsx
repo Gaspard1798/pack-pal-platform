@@ -84,8 +84,8 @@ function TerrainPage() {
       const map = new Map<string, Venue>();
       ((venues ?? []) as Venue[]).forEach((v) => map.set(v.demande_id, v));
       setVenuesByDemande(map);
-      // On garde tout ce qui n'est pas encore parti (pas de depart_reel)
-      items = allDemandes.filter((d) => !map.get(d.id)?.depart_reel);
+      // On garde tout ce qui n'est pas encore traité (ni terminé, annulé, refusé)
+      items = allDemandes.filter((d) => !["terminee", "annulee", "refusee"].includes(d.statut));
     } else {
       setVenuesByDemande(new Map());
     }
@@ -127,11 +127,15 @@ function TerrainPage() {
         .eq("id", existing.id);
       if (error) return toast.error(error.message);
     }
-    // also mark demande terminee if accepted
-    if (["en_cours", "acceptee", "modifiee"].includes(d.statut)) {
-      await supabase.from("demandes").update({ statut: "terminee" }).eq("id", d.id);
-    }
     toast.success("Départ enregistré");
+    loadData();
+  };
+
+  const onCloseDemande = async (d: Demande) => {
+    if (!["en_cours", "acceptee", "modifiee"].includes(d.statut)) return;
+    const { error } = await supabase.from("demandes").update({ statut: "terminee" }).eq("id", d.id);
+    if (error) return toast.error(error.message);
+    toast.success("Livraison clôturée");
     loadData();
   };
 
