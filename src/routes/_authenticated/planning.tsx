@@ -73,6 +73,9 @@ function PlanningPage() {
   const [demandeMats, setDemandeMats] = useState<DemandeMat[]>([]);
   const [date, setDate] = useState<string>(toISODate(new Date()));
   const [mode, setMode] = useState<ViewMode>("jour");
+  const [aireFilter, setAireFilter] = useState<string>("all");
+
+  useEffect(() => { setAireFilter("all"); }, [chantierId]);
 
   const { start: rangeStart, end: rangeEnd } = useMemo(() => rangeFor(mode, date), [mode, date]);
 
