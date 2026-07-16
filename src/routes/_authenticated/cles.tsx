@@ -445,6 +445,11 @@ function NewLogementDialog({ chantierId, onDone }: { chantierId: string; onDone:
       </DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader><DialogTitle>Ajouter un logement</DialogTitle></DialogHeader>
+        {batiments.length === 0 && (
+          <div className="text-sm text-muted-foreground bg-muted/50 rounded p-3">
+            Aucun bâtiment n'existe pour ce chantier. Créez d'abord la structure (bâtiment, bloc, niveau) dans l'onglet <strong>Paramètres &gt; Structure</strong>.
+          </div>
+        )}
         <div className="space-y-3">
           <div>
             <Label>Bâtiment</Label>
