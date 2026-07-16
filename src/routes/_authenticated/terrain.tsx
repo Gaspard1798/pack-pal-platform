@@ -276,10 +276,24 @@ function NonConformiteDialog({
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string[]>(venue?.non_conformites ?? []);
   const [commentaire, setCommentaire] = useState(venue?.commentaire ?? "");
+  const [retardMin, setRetardMin] = useState<string>(
+    venue?.retard_minutes != null ? String(venue.retard_minutes) : ""
+  );
   const [existing, setExisting] = useState<string[]>(venue?.photos ?? []);
   const [removed, setRemoved] = useState<string[]>([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setSelected(venue?.non_conformites ?? []);
+      setCommentaire(venue?.commentaire ?? "");
+      setRetardMin(venue?.retard_minutes != null ? String(venue.retard_minutes) : "");
+      setExisting(venue?.photos ?? []);
+      setRemoved([]);
+      setNewFiles([]);
+    }
+  }, [open, venue]);
 
   useEffect(() => {
     if (open) {
