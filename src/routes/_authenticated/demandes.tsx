@@ -74,7 +74,7 @@ function DemandesPage() {
   const [chantiers, setChantiers] = useState<Chantier[]>([]);
   const [demandes, setDemandes] = useState<Demande[]>([]);
   const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(false);
+  const [openMode, setOpenMode] = useState<DemandeMode | null>(null);
   const [filterStatut, setFilterStatut] = useState<Statut | "all">("all");
   const [filterChantier, setFilterChantier] = useState<string>("all");
 
@@ -108,22 +108,31 @@ function DemandesPage() {
         <div>
           <h1 className="font-display text-2xl font-semibold">Demandes de créneaux</h1>
           <p className="text-sm text-muted-foreground">
-            {isPrestataire ? "Vos demandes de livraison." : "Demandes à valider et à suivre."}
+            {isPrestataire ? "Vos demandes de livraison et de moyens matériel." : "Demandes à valider et à suivre."}
           </p>
         </div>
         {isPrestataire && chantiers.length > 0 && (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button><Plus className="size-4" /> Nouvelle demande</Button>
-            </DialogTrigger>
-            <NewDemandeDialog
-              userId={user!.id}
-              chantiers={chantiers}
-              onCreated={() => { setOpen(false); load(); }}
-            />
-          </Dialog>
+          <div className="flex gap-2 flex-wrap">
+            <Button onClick={() => setOpenMode("livraison")}>
+              <Truck className="size-4" /> Nouvelle livraison
+            </Button>
+            <Button variant="outline" onClick={() => setOpenMode("materiel")}>
+              <Wrench className="size-4" /> Nouveau moyen matériel
+            </Button>
+            <Dialog open={openMode !== null} onOpenChange={(o) => !o && setOpenMode(null)}>
+              {openMode && (
+                <NewDemandeDialog
+                  mode={openMode}
+                  userId={user!.id}
+                  chantiers={chantiers}
+                  onCreated={() => { setOpenMode(null); load(); }}
+                />
+              )}
+            </Dialog>
+          </div>
         )}
       </div>
+
 
       <div className="flex gap-3 flex-wrap">
         <div className="w-48">
