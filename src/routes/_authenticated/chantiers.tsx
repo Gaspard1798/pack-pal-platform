@@ -33,7 +33,7 @@ function ChantiersPage() {
   const [items, setItems] = useState<Chantier[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-  const isConducteur = roles.includes("conducteur") || roles.includes("admin");
+  const isAdmin = roles.includes("admin");
 
   if (matchId) {
     return <Outlet />;
