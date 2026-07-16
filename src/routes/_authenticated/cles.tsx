@@ -272,7 +272,7 @@ function LogementsTab({ chantierId, canManage }: { chantierId: string; canManage
   }, [rows, search]);
 
   const setStatut = async (id: string, statut: string) => {
-    const { error } = await supabase.from("logements").update({ statut }).eq("id", id);
+    const { error } = await supabase.from("logements").update({ statut: statut as any }).eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Statut mis à jour");
     setReload((r) => r + 1);
