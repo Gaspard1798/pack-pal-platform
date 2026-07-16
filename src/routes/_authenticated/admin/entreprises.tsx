@@ -250,24 +250,27 @@ function EntrepriseDialog({ entreprise, onDone }: { entreprise?: Entreprise; onD
           <Label htmlFor="nom">Nom *</Label>
           <Input id="nom" value={nom} onChange={(e) => setNom(e.target.value)} required maxLength={120} />
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <Label htmlFor="siret">SIRET</Label>
-            <Input id="siret" value={siret} onChange={(e) => setSiret(e.target.value)} maxLength={20} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="phone">Téléphone</Label>
-            <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={30} />
-          </div>
-        </div>
         <div className="space-y-2">
           <Label htmlFor="email">Email de contact</Label>
           <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={120} />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="adresse">Adresse</Label>
-          <Input id="adresse" value={adresse} onChange={(e) => setAdresse(e.target.value)} maxLength={250} />
-        </div>
+        <details className="space-y-2">
+          <summary className="cursor-pointer text-sm text-muted-foreground">Informations complémentaires (optionnel)</summary>
+          <div className="grid grid-cols-2 gap-3 pt-3">
+            <div className="space-y-2">
+              <Label htmlFor="siret">SIRET</Label>
+              <Input id="siret" value={siret} onChange={(e) => setSiret(e.target.value)} maxLength={20} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Téléphone</Label>
+              <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={30} />
+            </div>
+          </div>
+          <div className="space-y-2 pt-3">
+            <Label htmlFor="adresse">Adresse</Label>
+            <Input id="adresse" value={adresse} onChange={(e) => setAdresse(e.target.value)} maxLength={250} />
+          </div>
+        </details>
         <div className="space-y-2">
           <Label htmlFor="notes">Notes</Label>
           <Textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} />
