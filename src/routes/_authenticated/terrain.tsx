@@ -295,15 +295,8 @@ function NonConformiteDialog({
     }
   }, [open, venue]);
 
-  useEffect(() => {
-    if (open) {
-      setSelected(venue?.non_conformites ?? []);
-      setCommentaire(venue?.commentaire ?? "");
-      setExisting(venue?.photos ?? []);
-      setRemoved([]);
-      setNewFiles([]);
-    }
-  }, [open, venue]);
+
+
 
   const toggle = (nc: string, checked: boolean) =>
     setSelected((prev) => checked ? [...prev, nc] : prev.filter((x) => x !== nc));
