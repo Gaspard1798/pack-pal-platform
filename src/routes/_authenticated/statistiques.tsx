@@ -141,6 +141,87 @@ function StatistiquesPage() {
     };
   }, [venues, demandeById, demandes, aires]);
 
+  // Heures de matériel utilisées par entreprise (pour facturation)
+  const matStats = useMemo(() => {
+    const venueByDem = new Map(venues.map((v) => [v.demande_id, v]));
+    const matById = new Map(materiels.map((m) => [m.id, m]));
+    const profById = new Map(profiles.map((p) => [p.id, p]));
+    const entById = new Map(entreprises.map((e) => [e.id, e]));
+
+    // key: entreprise_id|_none
+    type Row = {
+      entrepriseId: string;
+      entreprise: string;
+      totalHeures: number;
+      nbReservations: number;
+      parMateriel: Map<string, { nom: string; heures: number; nb: number }>;
+    };
+    const rows = new Map<string, Row>();
+
+    for (const dm of demMats) {
+      const d = demandeById.get(dm.demande_id);
+      if (!d) continue;
+      // Ne compter que les demandes non refusées/annulées
+      if (d.statut === "refusee" || d.statut === "annulee") continue;
+      // Durée réelle si venue avec arrivée+départ, sinon durée planifiée
+      const v = venueByDem.get(dm.demande_id);
+      let minutes = d.duree_min;
+      if (v?.arrivee_reelle && v?.depart_reel) {
+        const dur = (new Date(v.depart_reel).getTime() - new Date(v.arrivee_reelle).getTime()) / 60000;
+        if (dur > 0) minutes = dur;
+      }
+      const heures = (minutes / 60) * (dm.quantite ?? 1);
+
+      const prof = profById.get(d.prestataire_id);
+      const entId = prof?.entreprise_id ?? "_none";
+      const entNom = entId === "_none"
+        ? (prof?.full_name || prof?.email || "Sans entreprise")
+        : (entById.get(entId)?.nom ?? "—");
+
+      const row = rows.get(entId) ?? {
+        entrepriseId: entId, entreprise: entNom,
+        totalHeures: 0, nbReservations: 0, parMateriel: new Map(),
+      };
+      row.totalHeures += heures;
+      row.nbReservations += 1;
+      const mat = matById.get(dm.materiel_id);
+      const mNom = mat?.nom ?? "—";
+      const cur = row.parMateriel.get(mNom) ?? { nom: mNom, heures: 0, nb: 0 };
+      cur.heures += heures;
+      cur.nb += 1;
+      row.parMateriel.set(mNom, cur);
+      rows.set(entId, row);
+    }
+
+    return [...rows.values()]
+      .map((r) => ({
+        ...r,
+        totalHeures: Math.round(r.totalHeures * 10) / 10,
+        parMateriel: [...r.parMateriel.values()]
+          .map((m) => ({ ...m, heures: Math.round(m.heures * 10) / 10 }))
+          .sort((a, b) => b.heures - a.heures),
+      }))
+      .sort((a, b) => b.totalHeures - a.totalHeures);
+  }, [demMats, materiels, profiles, entreprises, demandeById, venues]);
+
+  function exportMatCSV() {
+    const rows: string[] = ["Entreprise;Matériel;Heures;Réservations"];
+    for (const r of matStats) {
+      for (const m of r.parMateriel) {
+        rows.push(`"${r.entreprise}";"${m.nom}";${m.heures};${m.nb}`);
+      }
+      rows.push(`"${r.entreprise}";"TOTAL";${r.totalHeures};${r.nbReservations}`);
+    }
+    const blob = new Blob(["\ufeff" + rows.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `facturation-materiel-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+
   const kpis = [
     { label: "Venues enregistrées", value: stats.totalCheck, hint: `sur ${stats.planifiees} planifiées`, icon: CheckCircle2 },
     { label: "Ponctualité", value: `${stats.tauxPonctualite}%`, hint: `${stats.nbRetards} retard(s) > ${RETARD_SEUIL_MIN} min`, icon: Clock },
