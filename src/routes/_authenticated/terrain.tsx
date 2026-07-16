@@ -157,16 +157,12 @@ function TerrainPage() {
             {chantiers.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
           </select>
         </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Date</Label>
-          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-44" />
-        </div>
       </div>
 
       {loading ? (
         <p className="text-sm text-muted-foreground">Chargement…</p>
       ) : sorted.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Aucun créneau prévu pour cette date.</p>
+        <p className="text-sm text-muted-foreground">Aucune livraison en attente de traitement.</p>
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {sorted.map((d) => (
