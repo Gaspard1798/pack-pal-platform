@@ -181,7 +181,7 @@ function TerrainPage() {
               d={d}
               venue={venuesByDemande.get(d.id)}
               aireName={aireName(d.aire_id)}
-              onCheckin={() => onCheckin(d)}
+              onCheckin={(iso) => onCheckin(d, iso)}
               onCheckout={() => onCheckout(d)}
               onChanged={loadData}
             />
