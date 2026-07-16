@@ -161,7 +161,6 @@ function ClesPage() {
             <TabsTrigger value="cles">Clés</TabsTrigger>
             <TabsTrigger value="interventions">Interventions</TabsTrigger>
             <TabsTrigger value="nc">Non-conformités</TabsTrigger>
-            <TabsTrigger value="rondes">Rondes</TabsTrigger>
             <TabsTrigger value="prise-poste">Prise de poste</TabsTrigger>
             <TabsTrigger value="parametres">Paramètres</TabsTrigger>
           </TabsList>
@@ -171,8 +170,7 @@ function ClesPage() {
           <TabsContent value="logements"><LogementsTab chantierId={chantierId} canManage={canManage} /></TabsContent>
           <TabsContent value="cles"><ClesTab chantierId={chantierId} canManage={canManage} userId={user?.id ?? null} /></TabsContent>
           <TabsContent value="interventions"><InterventionsTab chantierId={chantierId} userId={user?.id ?? null} roles={roles} /></TabsContent>
-          <TabsContent value="nc"><Placeholder title="Non-conformités" hint="Sera disponible dans le Lot 3." /></TabsContent>
-          <TabsContent value="rondes"><Placeholder title="Rondes" hint="Sera disponible dans le Lot 3." /></TabsContent>
+          <TabsContent value="nc"><NonConformitesTab chantierId={chantierId} userId={user?.id ?? null} canManage={canManage} /></TabsContent>
           <TabsContent value="prise-poste"><PrisePosteTab chantierId={chantierId} userId={user?.id ?? null} roles={roles} /></TabsContent>
           <TabsContent value="parametres"><ParametresTab chantierId={chantierId} canManage={canManage} /></TabsContent>
         </Tabs>
