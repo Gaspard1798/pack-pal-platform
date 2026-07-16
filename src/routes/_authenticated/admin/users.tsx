@@ -10,11 +10,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { ShieldAlert } from "lucide-react";
 
-type Profile = { id: string; email: string; full_name: string | null; company: string | null };
+type Profile = { id: string; email: string; full_name: string | null; company: string | null; entreprise_id: string | null };
 type RoleRow = { user_id: string; role: AppRole };
+type Entreprise = { id: string; nom: string };
 
 const ALL_ROLES: AppRole[] = ["admin", "conducteur", "prestataire", "operateur"];
 
@@ -29,6 +33,7 @@ function AdminUsersPage() {
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [rolesMap, setRolesMap] = useState<Record<string, Set<AppRole>>>({});
+  const [entreprises, setEntreprises] = useState<Entreprise[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
@@ -38,13 +43,15 @@ function AdminUsersPage() {
 
   const load = async () => {
     setLoading(true);
-    const [p, r] = await Promise.all([
-      supabase.from("profiles").select("id, email, full_name, company").order("email"),
+    const [p, r, e] = await Promise.all([
+      supabase.from("profiles").select("id, email, full_name, company, entreprise_id").order("email"),
       supabase.from("user_roles").select("user_id, role"),
+      supabase.from("entreprises").select("id, nom").order("nom"),
     ]);
     if (p.error) toast.error(p.error.message);
     if (r.error) toast.error(r.error.message);
     setProfiles((p.data ?? []) as Profile[]);
+    setEntreprises((e.data ?? []) as Entreprise[]);
     const map: Record<string, Set<AppRole>> = {};
     for (const row of (r.data ?? []) as RoleRow[]) {
       if (!map[row.user_id]) map[row.user_id] = new Set();
@@ -55,6 +62,13 @@ function AdminUsersPage() {
   };
 
   useEffect(() => { if (isAdmin) load(); }, [isAdmin]);
+
+  const setEntreprise = async (userId: string, entrepriseId: string | null) => {
+    const { error } = await supabase.from("profiles").update({ entreprise_id: entrepriseId }).eq("id", userId);
+    if (error) return toast.error(error.message);
+    setProfiles((prev) => prev.map((p) => p.id === userId ? { ...p, entreprise_id: entrepriseId } : p));
+    toast.success("Entreprise mise à jour");
+  };
 
   const toggleRole = async (userId: string, role: AppRole, checked: boolean) => {
     if (checked) {
