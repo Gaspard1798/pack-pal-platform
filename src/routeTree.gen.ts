@@ -22,6 +22,7 @@ import { Route as AuthenticatedPlanningRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedDemandesRouteImport } from './routes/_authenticated/demandes'
 import { Route as AuthenticatedDechetsRouteImport } from './routes/_authenticated/dechets'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedClesRouteImport } from './routes/_authenticated/cles'
 import { Route as AuthenticatedChantiersRouteImport } from './routes/_authenticated/chantiers'
 import { Route as AuthenticatedChantiersIdRouteImport } from './routes/_authenticated/chantiers.$id'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
@@ -92,6 +93,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedClesRoute = AuthenticatedClesRouteImport.update({
+  id: '/cles',
+  path: '/cles',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedChantiersRoute = AuthenticatedChantiersRouteImport.update({
   id: '/chantiers',
   path: '/chantiers',
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/chantiers': typeof AuthenticatedChantiersRouteWithChildren
+  '/cles': typeof AuthenticatedClesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/dechets': typeof AuthenticatedDechetsRoute
   '/demandes': typeof AuthenticatedDemandesRoute
@@ -140,6 +147,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/chantiers': typeof AuthenticatedChantiersRouteWithChildren
+  '/cles': typeof AuthenticatedClesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/dechets': typeof AuthenticatedDechetsRoute
   '/demandes': typeof AuthenticatedDemandesRoute
@@ -160,6 +168,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/_authenticated/chantiers': typeof AuthenticatedChantiersRouteWithChildren
+  '/_authenticated/cles': typeof AuthenticatedClesRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/dechets': typeof AuthenticatedDechetsRoute
   '/_authenticated/demandes': typeof AuthenticatedDemandesRoute
@@ -180,6 +189,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/chantiers'
+    | '/cles'
     | '/dashboard'
     | '/dechets'
     | '/demandes'
@@ -198,6 +208,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/chantiers'
+    | '/cles'
     | '/dashboard'
     | '/dechets'
     | '/demandes'
@@ -217,6 +228,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/_authenticated/chantiers'
+    | '/_authenticated/cles'
     | '/_authenticated/dashboard'
     | '/_authenticated/dechets'
     | '/_authenticated/demandes'
@@ -331,6 +343,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/cles': {
+      id: '/_authenticated/cles'
+      path: '/cles'
+      fullPath: '/cles'
+      preLoaderRoute: typeof AuthenticatedClesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/chantiers': {
       id: '/_authenticated/chantiers'
       path: '/chantiers'
@@ -378,6 +397,7 @@ const AuthenticatedChantiersRouteWithChildren =
 
 interface AuthenticatedRouteChildren {
   AuthenticatedChantiersRoute: typeof AuthenticatedChantiersRouteWithChildren
+  AuthenticatedClesRoute: typeof AuthenticatedClesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDechetsRoute: typeof AuthenticatedDechetsRoute
   AuthenticatedDemandesRoute: typeof AuthenticatedDemandesRoute
@@ -391,6 +411,7 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedChantiersRoute: AuthenticatedChantiersRouteWithChildren,
+  AuthenticatedClesRoute: AuthenticatedClesRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDechetsRoute: AuthenticatedDechetsRoute,
   AuthenticatedDemandesRoute: AuthenticatedDemandesRoute,
@@ -417,13 +438,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
