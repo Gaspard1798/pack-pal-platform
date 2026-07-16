@@ -74,8 +74,9 @@ function PlanningPage() {
   const [date, setDate] = useState<string>(toISODate(new Date()));
   const [mode, setMode] = useState<ViewMode>("jour");
   const [aireFilter, setAireFilter] = useState<string>("all");
+  const [statutFilter, setStatutFilter] = useState<string>("all");
 
-  useEffect(() => { setAireFilter("all"); }, [chantierId]);
+  useEffect(() => { setAireFilter("all"); setStatutFilter("all"); }, [chantierId]);
 
   const { start: rangeStart, end: rangeEnd } = useMemo(() => rangeFor(mode, date), [mode, date]);
 
@@ -201,11 +202,12 @@ function PlanningPage() {
     const ds = rangeStart.getTime();
     const de = rangeEnd.getTime();
     return demandes.filter((d) => {
+      if (statutFilter !== "all" && d.statut !== statutFilter) return false;
       const s = new Date(d.debut).getTime();
       const e = s + d.duree_min * 60000;
       return overlap(s, e, ds, de);
     });
-  }, [demandes, mode, rangeStart, rangeEnd]);
+  }, [demandes, mode, rangeStart, rangeEnd, statutFilter]);
 
   // Group by aire (vue jour)
   const groupedAires = useMemo(() => {
@@ -241,11 +243,12 @@ function PlanningPage() {
   // Group by jour (vues semaine/mois)
   const groupedDays = useMemo(() => {
     const byDay = new Map<string, Demande[]>();
-    const filtered = aireFilter === "all"
-      ? demandes
-      : aireFilter === "_none"
-        ? demandes.filter((d) => !d.aire_id)
-        : demandes.filter((d) => d.aire_id === aireFilter);
+    const filtered = demandes.filter((d) => {
+      if (statutFilter !== "all" && d.statut !== statutFilter) return false;
+      if (aireFilter === "all") return true;
+      if (aireFilter === "_none") return !d.aire_id;
+      return d.aire_id === aireFilter;
+    });
     for (const d of filtered) {
       const key = toISODate(new Date(d.debut));
       if (!byDay.has(key)) byDay.set(key, []);
@@ -255,7 +258,7 @@ function PlanningPage() {
       arr.sort((a, b) => new Date(a.debut).getTime() - new Date(b.debut).getTime());
     }
     return [...byDay.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  }, [demandes, aireFilter]);
+  }, [demandes, aireFilter, statutFilter]);
 
   const aireName = (id: string | null) => id ? (aires.find((a) => a.id === id)?.nom ?? "—") : "Sans aire";
 
