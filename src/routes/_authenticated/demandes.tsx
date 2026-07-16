@@ -206,6 +206,25 @@ function DemandesPage() {
             </SelectContent>
           </Select>
         </div>
+        {isConducteur && (
+          <div className="w-64">
+            <Select value={filterEntreprise} onValueChange={setFilterEntreprise}>
+              <SelectTrigger><SelectValue placeholder="Entreprise" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes les entreprises</SelectItem>
+                <SelectItem value="none">Sans entreprise</SelectItem>
+                {entreprises.map((e) => (
+                  <SelectItem key={e.id} value={e.id}>{e.nom}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        <div className="ml-auto">
+          <Button variant="outline" onClick={exportCsv} disabled={filtered.length === 0}>
+            <Download className="size-4" /> Export CSV
+          </Button>
+        </div>
       </div>
 
       <Card>
