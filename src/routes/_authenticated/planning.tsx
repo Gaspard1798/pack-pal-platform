@@ -455,6 +455,28 @@ function PlanningPage() {
         </>
       ) : (
         <section className="space-y-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-medium text-muted-foreground mr-1">Filtrer par aire :</span>
+            <Button size="sm" variant={aireFilter === "all" ? "default" : "outline"}
+              className="h-7" onClick={() => setAireFilter("all")}>
+              Toutes ({demandes.length})
+            </Button>
+            {aires.map((a) => {
+              const count = demandes.filter((d) => d.aire_id === a.id).length;
+              return (
+                <Button key={a.id} size="sm" variant={aireFilter === a.id ? "default" : "outline"}
+                  className="h-7" onClick={() => setAireFilter(a.id)}>
+                  {a.nom} ({count})
+                </Button>
+              );
+            })}
+            {demandes.some((d) => !d.aire_id) && (
+              <Button size="sm" variant={aireFilter === "_none" ? "default" : "outline"}
+                className="h-7" onClick={() => setAireFilter("_none")}>
+                Sans aire ({demandes.filter((d) => !d.aire_id).length})
+              </Button>
+            )}
+          </div>
           {groupedDays.length === 0 ? (
             <p className="text-sm text-muted-foreground">Aucun créneau sur cette période.</p>
           ) : (
