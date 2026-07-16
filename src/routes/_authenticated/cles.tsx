@@ -352,7 +352,9 @@ function LogementsTab({ chantierId, canManage }: { chantierId: string; canManage
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-6">Aucun logement.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-6">
+                  Aucun logement. Créez d'abord la structure (bâtiment, bloc, niveau) dans <strong>Paramètres &gt; Structure</strong>, puis cliquez sur <strong>Ajouter un logement</strong>.
+                </TableCell></TableRow>
               ) : filtered.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell className="font-medium">{r.numero}</TableCell>
