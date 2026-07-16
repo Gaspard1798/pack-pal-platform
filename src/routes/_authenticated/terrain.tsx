@@ -13,7 +13,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Clock, LogIn, LogOut, AlertTriangle, MapPin, ImagePlus, X, Loader2 } from "lucide-react";
+import { Clock, LogIn, LogOut, AlertTriangle, MapPin, ImagePlus, X, Loader2, CheckCircle2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/terrain")({
   component: TerrainPage,
@@ -84,8 +84,8 @@ function TerrainPage() {
       const map = new Map<string, Venue>();
       ((venues ?? []) as Venue[]).forEach((v) => map.set(v.demande_id, v));
       setVenuesByDemande(map);
-      // On garde tout ce qui n'est pas encore parti (pas de depart_reel)
-      items = allDemandes.filter((d) => !map.get(d.id)?.depart_reel);
+      // On garde tout ce qui n'est pas encore traité (ni terminé, annulé, refusé)
+      items = allDemandes.filter((d) => !["terminee", "annulee", "refusee"].includes(d.statut));
     } else {
       setVenuesByDemande(new Map());
     }
@@ -127,11 +127,15 @@ function TerrainPage() {
         .eq("id", existing.id);
       if (error) return toast.error(error.message);
     }
-    // also mark demande terminee if accepted
-    if (["en_cours", "acceptee", "modifiee"].includes(d.statut)) {
-      await supabase.from("demandes").update({ statut: "terminee" }).eq("id", d.id);
-    }
     toast.success("Départ enregistré");
+    loadData();
+  };
+
+  const onCloseDemande = async (d: Demande) => {
+    if (!["en_cours", "acceptee", "modifiee"].includes(d.statut)) return;
+    const { error } = await supabase.from("demandes").update({ statut: "terminee" }).eq("id", d.id);
+    if (error) return toast.error(error.message);
+    toast.success("Livraison clôturée");
     loadData();
   };
 
@@ -173,6 +177,7 @@ function TerrainPage() {
               aireName={aireName(d.aire_id)}
               onCheckin={(iso) => onCheckin(d, iso)}
               onCheckout={() => onCheckout(d)}
+              onClose={() => onCloseDemande(d)}
               onChanged={loadData}
             />
           ))}
@@ -183,11 +188,13 @@ function TerrainPage() {
 }
 
 function DemandeCard({
-  d, venue, aireName, onCheckin, onCheckout, onChanged,
+  d, venue, aireName, onCheckin, onCheckout, onClose, onChanged,
 }: {
   d: Demande; venue?: Venue; aireName: string;
-  onCheckin: (iso?: string) => void; onCheckout: () => void; onChanged: () => void;
+  onCheckin: (iso?: string) => void; onCheckout: () => void; onClose: () => void; onChanged: () => void;
 }) {
+  const { roles } = useAuth();
+  const canClose = roles.includes("operateur") || roles.includes("admin");
   const start = new Date(d.debut);
   const end = new Date(start.getTime() + d.duree_min * 60000);
   const fmt = (x: Date) => x.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
@@ -251,6 +258,11 @@ function DemandeCard({
           {arrived && !departed && (
             <Button size="sm" variant="secondary" onClick={onCheckout}>
               <LogOut className="size-4" /> Départ
+            </Button>
+          )}
+          {arrived && canClose && !["terminee", "annulee", "refusee"].includes(d.statut) && (
+            <Button size="sm" variant="default" onClick={onClose}>
+              <CheckCircle2 className="size-4" /> Valider réception
             </Button>
           )}
           <NonConformiteDialog venue={venue} demandeId={d.id} onSaved={onChanged} />
