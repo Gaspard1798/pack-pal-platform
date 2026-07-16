@@ -326,16 +326,19 @@ function NonConformiteDialog({
     }
 
     const photos = [...existing, ...uploadedPaths];
+    const retard = selected.includes("Retard") && retardMin.trim() !== ""
+      ? Math.max(0, parseInt(retardMin, 10) || 0)
+      : null;
 
     if (venue) {
       const { error } = await supabase.from("venues")
-        .update({ non_conformites: selected, commentaire: commentaire || null, photos, enregistre_par: user?.id })
+        .update({ non_conformites: selected, commentaire: commentaire || null, photos, retard_minutes: retard, enregistre_par: user?.id })
         .eq("id", venue.id);
       if (error) { setSaving(false); return toast.error(error.message); }
     } else {
       const { error } = await supabase.from("venues").insert({
         demande_id: demandeId, non_conformites: selected,
-        commentaire: commentaire || null, photos, enregistre_par: user?.id,
+        commentaire: commentaire || null, photos, retard_minutes: retard, enregistre_par: user?.id,
       });
       if (error) { setSaving(false); return toast.error(error.message); }
     }
