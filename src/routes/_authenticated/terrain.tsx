@@ -241,7 +241,9 @@ function DemandeCard({
             {venue?.non_conformites && venue.non_conformites.length > 0 && (
               <div className="flex flex-wrap gap-1 pt-1">
                 {venue.non_conformites.map((nc) => (
-                  <Badge key={nc} variant="destructive" className="text-[10px]">{nc}</Badge>
+                  <Badge key={nc} variant="destructive" className="text-[10px]">
+                    {nc}{nc === "Retard" && venue.retard_minutes != null ? ` (${venue.retard_minutes} min)` : ""}
+                  </Badge>
                 ))}
               </div>
             )}
