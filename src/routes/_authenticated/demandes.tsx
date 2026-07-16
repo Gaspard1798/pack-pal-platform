@@ -369,8 +369,9 @@ function ModifierDialog({ demande, onDone }: { demande: Demande; onDone: () => v
 
 
 function NewDemandeDialog({
-  userId, chantiers, onCreated,
-}: { userId: string; chantiers: Chantier[]; onCreated: () => void }) {
+  mode, userId, chantiers, onCreated,
+}: { mode: DemandeMode; userId: string; chantiers: Chantier[]; onCreated: () => void }) {
+  const isMateriel = mode === "materiel";
   const [chantierId, setChantierId] = useState<string>("");
   const [aires, setAires] = useState<Aire[]>([]);
   const [aireId, setAireId] = useState<string>("");
