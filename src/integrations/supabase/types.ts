@@ -222,6 +222,42 @@ export type Database = {
           },
         ]
       }
+      entreprises: {
+        Row: {
+          adresse: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          nom: string
+          notes: string | null
+          siret: string | null
+          updated_at: string
+        }
+        Insert: {
+          adresse?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          nom: string
+          notes?: string | null
+          siret?: string | null
+          updated_at?: string
+        }
+        Update: {
+          adresse?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          nom?: string
+          notes?: string | null
+          siret?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       materiels: {
         Row: {
           chantier_id: string
@@ -301,6 +337,7 @@ export type Database = {
           company: string | null
           created_at: string
           email: string
+          entreprise_id: string | null
           full_name: string | null
           id: string
           phone: string | null
@@ -310,6 +347,7 @@ export type Database = {
           company?: string | null
           created_at?: string
           email: string
+          entreprise_id?: string | null
           full_name?: string | null
           id: string
           phone?: string | null
@@ -319,12 +357,21 @@ export type Database = {
           company?: string | null
           created_at?: string
           email?: string
+          entreprise_id?: string | null
           full_name?: string | null
           id?: string
           phone?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_entreprise_id_fkey"
+            columns: ["entreprise_id"]
+            isOneToOne: false
+            referencedRelation: "entreprises"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
