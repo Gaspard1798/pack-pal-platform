@@ -381,6 +381,23 @@ function PlanningPage() {
         <p className="text-sm text-muted-foreground">Aucun chantier accessible.</p>
       ) : mode === "jour" ? (
         <>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-medium text-muted-foreground mr-1">Statut :</span>
+            <Button size="sm" variant={statutFilter === "all" ? "default" : "outline"}
+              className="h-7" onClick={() => setStatutFilter("all")}>
+              Tous
+            </Button>
+            {(["en_cours", "acceptee", "modifiee", "terminee", "refusee", "annulee"] as const).map((s) => {
+              const count = demandes.filter((d) => d.statut === s).length;
+              return (
+                <Button key={s} size="sm" variant={statutFilter === s ? "default" : "outline"}
+                  className={`h-7 capitalize ${statutFilter === s ? "" : STATUT_COLOR[s]}`}
+                  onClick={() => setStatutFilter(s)}>
+                  {s.replace("_", " ")} ({count})
+                </Button>
+              );
+            })}
+          </div>
           <section className="space-y-3">
             <h2 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <MapPin className="size-4" /> Aires de livraison
