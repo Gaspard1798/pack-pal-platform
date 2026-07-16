@@ -18,12 +18,16 @@ type Chantier = { id: string; nom: string };
 type Aire = { id: string; nom: string };
 type Demande = {
   id: string; aire_id: string | null; debut: string; duree_min: number;
-  nature: string; prestataire_id: string;
+  nature: string; prestataire_id: string; statut: string;
 };
 type Venue = {
   id: string; demande_id: string; arrivee_reelle: string | null;
   depart_reel: string | null; non_conformites: string[] | null;
 };
+type DemandeMat = { demande_id: string; materiel_id: string; quantite: number };
+type Materiel = { id: string; nom: string; type: string | null };
+type Entreprise = { id: string; nom: string };
+type Profile = { id: string; entreprise_id: string | null; full_name: string | null; email: string };
 
 const RETARD_SEUIL_MIN = 15;
 
