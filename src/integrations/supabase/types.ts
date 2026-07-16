@@ -419,6 +419,92 @@ export type Database = {
           },
         ]
       }
+      demandes_acces: {
+        Row: {
+          chantier_id: string
+          compagnon_id: string | null
+          created_at: string
+          date_prevue: string
+          demandeur_id: string
+          heure_debut: string
+          heure_fin: string
+          id: string
+          logement_id: string
+          lot_id: string | null
+          motif: string
+          raison_refus: string | null
+          statut: Database["public"]["Enums"]["demande_acces_statut"]
+          updated_at: string
+          urgence: Database["public"]["Enums"]["demande_acces_urgence"]
+          valide_par: string | null
+        }
+        Insert: {
+          chantier_id: string
+          compagnon_id?: string | null
+          created_at?: string
+          date_prevue: string
+          demandeur_id: string
+          heure_debut: string
+          heure_fin: string
+          id?: string
+          logement_id: string
+          lot_id?: string | null
+          motif: string
+          raison_refus?: string | null
+          statut?: Database["public"]["Enums"]["demande_acces_statut"]
+          updated_at?: string
+          urgence?: Database["public"]["Enums"]["demande_acces_urgence"]
+          valide_par?: string | null
+        }
+        Update: {
+          chantier_id?: string
+          compagnon_id?: string | null
+          created_at?: string
+          date_prevue?: string
+          demandeur_id?: string
+          heure_debut?: string
+          heure_fin?: string
+          id?: string
+          logement_id?: string
+          lot_id?: string | null
+          motif?: string
+          raison_refus?: string | null
+          statut?: Database["public"]["Enums"]["demande_acces_statut"]
+          updated_at?: string
+          urgence?: Database["public"]["Enums"]["demande_acces_urgence"]
+          valide_par?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demandes_acces_chantier_id_fkey"
+            columns: ["chantier_id"]
+            isOneToOne: false
+            referencedRelation: "chantiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demandes_acces_compagnon_id_fkey"
+            columns: ["compagnon_id"]
+            isOneToOne: false
+            referencedRelation: "compagnons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demandes_acces_logement_id_fkey"
+            columns: ["logement_id"]
+            isOneToOne: false
+            referencedRelation: "logements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demandes_acces_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entreprises: {
         Row: {
           adresse: string | null
@@ -454,6 +540,96 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      interventions: {
+        Row: {
+          chantier_id: string
+          compagnon_id: string | null
+          coureur_id: string
+          created_at: string
+          demande_id: string | null
+          heure_fermeture: string | null
+          heure_ouverture: string
+          id: string
+          logement_id: string
+          notes: string | null
+          photos_apres: string[]
+          photos_avant: string[]
+          statut: Database["public"]["Enums"]["intervention_statut"]
+          trousseau_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          chantier_id: string
+          compagnon_id?: string | null
+          coureur_id: string
+          created_at?: string
+          demande_id?: string | null
+          heure_fermeture?: string | null
+          heure_ouverture?: string
+          id?: string
+          logement_id: string
+          notes?: string | null
+          photos_apres?: string[]
+          photos_avant?: string[]
+          statut?: Database["public"]["Enums"]["intervention_statut"]
+          trousseau_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          chantier_id?: string
+          compagnon_id?: string | null
+          coureur_id?: string
+          created_at?: string
+          demande_id?: string | null
+          heure_fermeture?: string | null
+          heure_ouverture?: string
+          id?: string
+          logement_id?: string
+          notes?: string | null
+          photos_apres?: string[]
+          photos_avant?: string[]
+          statut?: Database["public"]["Enums"]["intervention_statut"]
+          trousseau_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interventions_chantier_id_fkey"
+            columns: ["chantier_id"]
+            isOneToOne: false
+            referencedRelation: "chantiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interventions_compagnon_id_fkey"
+            columns: ["compagnon_id"]
+            isOneToOne: false
+            referencedRelation: "compagnons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interventions_demande_id_fkey"
+            columns: ["demande_id"]
+            isOneToOne: false
+            referencedRelation: "demandes_acces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interventions_logement_id_fkey"
+            columns: ["logement_id"]
+            isOneToOne: false
+            referencedRelation: "logements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interventions_trousseau_id_fkey"
+            columns: ["trousseau_id"]
+            isOneToOne: false
+            referencedRelation: "trousseaux"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       logements: {
         Row: {
@@ -1158,6 +1334,13 @@ export type Database = {
         | "gestionnaire_cles"
       contenant_type: "benne" | "bac" | "bigbag"
       dechet_type: "dib" | "gravats" | "tri" | "did"
+      demande_acces_statut:
+        | "en_attente"
+        | "acceptee"
+        | "refusee"
+        | "terminee"
+        | "annulee"
+      demande_acces_urgence: "normale" | "prioritaire" | "urgente"
       demande_statut:
         | "en_cours"
         | "acceptee"
@@ -1165,6 +1348,7 @@ export type Database = {
         | "modifiee"
         | "terminee"
         | "annulee"
+      intervention_statut: "en_cours" | "terminee" | "bloquee"
       logement_phase:
         | "opr"
         | "levee_reserves"
@@ -1348,6 +1532,14 @@ export const Constants = {
       ],
       contenant_type: ["benne", "bac", "bigbag"],
       dechet_type: ["dib", "gravats", "tri", "did"],
+      demande_acces_statut: [
+        "en_attente",
+        "acceptee",
+        "refusee",
+        "terminee",
+        "annulee",
+      ],
+      demande_acces_urgence: ["normale", "prioritaire", "urgente"],
       demande_statut: [
         "en_cours",
         "acceptee",
@@ -1356,6 +1548,7 @@ export const Constants = {
         "terminee",
         "annulee",
       ],
+      intervention_statut: ["en_cours", "terminee", "bloquee"],
       logement_phase: [
         "opr",
         "levee_reserves",
