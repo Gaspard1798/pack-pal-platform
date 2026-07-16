@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -18,12 +18,16 @@ type Chantier = { id: string; nom: string };
 type Aire = { id: string; nom: string };
 type Demande = {
   id: string; aire_id: string | null; debut: string; duree_min: number;
-  nature: string; prestataire_id: string;
+  nature: string; prestataire_id: string; statut: string;
 };
 type Venue = {
   id: string; demande_id: string; arrivee_reelle: string | null;
   depart_reel: string | null; non_conformites: string[] | null;
 };
+type DemandeMat = { demande_id: string; materiel_id: string; quantite: number };
+type Materiel = { id: string; nom: string; type: string | null };
+type Entreprise = { id: string; nom: string };
+type Profile = { id: string; entreprise_id: string | null; full_name: string | null; email: string };
 
 const RETARD_SEUIL_MIN = 15;
 
@@ -36,11 +40,19 @@ function StatistiquesPage() {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const [demMats, setDemMats] = useState<DemandeMat[]>([]);
+  const [materiels, setMateriels] = useState<Materiel[]>([]);
+  const [entreprises, setEntreprises] = useState<Entreprise[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+
   useEffect(() => {
     supabase.from("chantiers").select("id,nom").order("nom").then(({ data }) => {
       const list = (data ?? []) as Chantier[];
       setChantiers(list);
       if (list.length && !chantierId) setChantierId(list[0].id);
+    });
+    supabase.from("entreprises").select("id,nom").order("nom").then(({ data }) => {
+      setEntreprises((data ?? []) as Entreprise[]);
     });
   }, []);
 
@@ -49,22 +61,30 @@ function StatistiquesPage() {
     setLoading(true);
     const since = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
     (async () => {
-      const [{ data: aireData }, { data: demandeData }] = await Promise.all([
+      const [{ data: aireData }, { data: demandeData }, { data: matData }] = await Promise.all([
         supabase.from("aires").select("id,nom").eq("chantier_id", chantierId).order("nom"),
-        supabase.from("demandes").select("id,aire_id,debut,duree_min,nature,prestataire_id")
+        supabase.from("demandes").select("id,aire_id,debut,duree_min,nature,prestataire_id,statut")
           .eq("chantier_id", chantierId).gte("debut", since).order("debut"),
+        supabase.from("materiels").select("id,nom,type").eq("chantier_id", chantierId),
       ]);
       setAires((aireData ?? []) as Aire[]);
+      setMateriels((matData ?? []) as Materiel[]);
       const dem = (demandeData ?? []) as Demande[];
       setDemandes(dem);
       const ids = dem.map((d) => d.id);
       if (ids.length) {
-        const { data: vData } = await supabase
-          .from("venues")
-          .select("id,demande_id,arrivee_reelle,depart_reel,non_conformites")
-          .in("demande_id", ids);
+        const prestataireIds = [...new Set(dem.map((d) => d.prestataire_id))];
+        const [{ data: vData }, { data: dmData }, { data: pData }] = await Promise.all([
+          supabase.from("venues").select("id,demande_id,arrivee_reelle,depart_reel,non_conformites").in("demande_id", ids),
+          supabase.from("demande_materiels").select("demande_id,materiel_id,quantite").in("demande_id", ids),
+          supabase.from("profiles").select("id,entreprise_id,full_name,email").in("id", prestataireIds),
+        ]);
         setVenues((vData ?? []) as Venue[]);
-      } else setVenues([]);
+        setDemMats((dmData ?? []) as DemandeMat[]);
+        setProfiles((pData ?? []) as Profile[]);
+      } else {
+        setVenues([]); setDemMats([]); setProfiles([]);
+      }
       setLoading(false);
     })();
   }, [chantierId, days]);
@@ -120,6 +140,87 @@ function StatistiquesPage() {
       })).sort((a, b) => b.venues - a.venues),
     };
   }, [venues, demandeById, demandes, aires]);
+
+  // Heures de matériel utilisées par entreprise (pour facturation)
+  const matStats = useMemo(() => {
+    const venueByDem = new Map(venues.map((v) => [v.demande_id, v]));
+    const matById = new Map(materiels.map((m) => [m.id, m]));
+    const profById = new Map(profiles.map((p) => [p.id, p]));
+    const entById = new Map(entreprises.map((e) => [e.id, e]));
+
+    // key: entreprise_id|_none
+    type Row = {
+      entrepriseId: string;
+      entreprise: string;
+      totalHeures: number;
+      nbReservations: number;
+      parMateriel: Map<string, { nom: string; heures: number; nb: number }>;
+    };
+    const rows = new Map<string, Row>();
+
+    for (const dm of demMats) {
+      const d = demandeById.get(dm.demande_id);
+      if (!d) continue;
+      // Ne compter que les demandes non refusées/annulées
+      if (d.statut === "refusee" || d.statut === "annulee") continue;
+      // Durée réelle si venue avec arrivée+départ, sinon durée planifiée
+      const v = venueByDem.get(dm.demande_id);
+      let minutes = d.duree_min;
+      if (v?.arrivee_reelle && v?.depart_reel) {
+        const dur = (new Date(v.depart_reel).getTime() - new Date(v.arrivee_reelle).getTime()) / 60000;
+        if (dur > 0) minutes = dur;
+      }
+      const heures = (minutes / 60) * (dm.quantite ?? 1);
+
+      const prof = profById.get(d.prestataire_id);
+      const entId = prof?.entreprise_id ?? "_none";
+      const entNom = entId === "_none"
+        ? (prof?.full_name || prof?.email || "Sans entreprise")
+        : (entById.get(entId)?.nom ?? "—");
+
+      const row = rows.get(entId) ?? {
+        entrepriseId: entId, entreprise: entNom,
+        totalHeures: 0, nbReservations: 0, parMateriel: new Map(),
+      };
+      row.totalHeures += heures;
+      row.nbReservations += 1;
+      const mat = matById.get(dm.materiel_id);
+      const mNom = mat?.nom ?? "—";
+      const cur = row.parMateriel.get(mNom) ?? { nom: mNom, heures: 0, nb: 0 };
+      cur.heures += heures;
+      cur.nb += 1;
+      row.parMateriel.set(mNom, cur);
+      rows.set(entId, row);
+    }
+
+    return [...rows.values()]
+      .map((r) => ({
+        ...r,
+        totalHeures: Math.round(r.totalHeures * 10) / 10,
+        parMateriel: [...r.parMateriel.values()]
+          .map((m) => ({ ...m, heures: Math.round(m.heures * 10) / 10 }))
+          .sort((a, b) => b.heures - a.heures),
+      }))
+      .sort((a, b) => b.totalHeures - a.totalHeures);
+  }, [demMats, materiels, profiles, entreprises, demandeById, venues]);
+
+  function exportMatCSV() {
+    const rows: string[] = ["Entreprise;Matériel;Heures;Réservations"];
+    for (const r of matStats) {
+      for (const m of r.parMateriel) {
+        rows.push(`"${r.entreprise}";"${m.nom}";${m.heures};${m.nb}`);
+      }
+      rows.push(`"${r.entreprise}";"TOTAL";${r.totalHeures};${r.nbReservations}`);
+    }
+    const blob = new Blob(["\ufeff" + rows.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `facturation-materiel-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
 
   const kpis = [
     { label: "Venues enregistrées", value: stats.totalCheck, hint: `sur ${stats.planifiees} planifiées`, icon: CheckCircle2 },
@@ -219,6 +320,64 @@ function StatistiquesPage() {
             </Card>
           </div>
         </>
+      )}
+
+      {chantierId && !loading && matStats.length > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <div>
+              <CardTitle className="text-base">Utilisation matériel par entreprise</CardTitle>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Heures cumulées de moyens matériel réservés (durée réelle si pointée, sinon planifiée) — base de facturation.
+              </p>
+            </div>
+            <Button size="sm" variant="outline" onClick={exportMatCSV}>Export CSV</Button>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={matStats.map((r) => ({ entreprise: r.entreprise, heures: r.totalHeures }))}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+                <XAxis dataKey="entreprise" className="text-xs" />
+                <YAxis className="text-xs" />
+                <Tooltip cursor={{ fill: "var(--muted)" }} formatter={(v: number) => `${v} h`} />
+                <Bar dataKey="heures" name="Heures" radius={[4, 4, 0, 0]} fill="var(--accent)" />
+              </BarChart>
+            </ResponsiveContainer>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-xs text-muted-foreground">
+                  <tr className="border-b">
+                    <th className="py-2 text-left font-medium">Entreprise</th>
+                    <th className="py-2 text-left font-medium">Matériel</th>
+                    <th className="py-2 text-right font-medium">Heures</th>
+                    <th className="py-2 text-right font-medium">Réservations</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {matStats.map((r) => (
+                    <Fragment key={r.entrepriseId}>
+                      {r.parMateriel.map((m, i) => (
+                        <tr key={r.entrepriseId + m.nom} className="border-b border-border/50">
+                          <td className="py-2">{i === 0 ? <span className="font-medium">{r.entreprise}</span> : null}</td>
+                          <td className="py-2">{m.nom}</td>
+                          <td className="py-2 text-right tabular-nums">{m.heures} h</td>
+                          <td className="py-2 text-right tabular-nums">{m.nb}</td>
+                        </tr>
+                      ))}
+                      <tr className="border-b bg-muted/30">
+                        <td className="py-2"></td>
+                        <td className="py-2 font-medium">Total</td>
+                        <td className="py-2 text-right font-semibold tabular-nums">{r.totalHeures} h</td>
+                        <td className="py-2 text-right font-semibold tabular-nums">{r.nbReservations}</td>
+                      </tr>
+                    </Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
