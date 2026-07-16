@@ -530,7 +530,11 @@ function NewDemandeDialog({
 
   return (
     <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-      <DialogHeader><DialogTitle>Nouvelle demande de créneau</DialogTitle></DialogHeader>
+      <DialogHeader>
+        <DialogTitle>
+          {isMateriel ? "Nouvelle réservation de moyen matériel" : "Nouvelle demande de livraison"}
+        </DialogTitle>
+      </DialogHeader>
       <form onSubmit={submit} className="space-y-4">
         <div className="space-y-2">
           <Label>Chantier *</Label>
@@ -542,7 +546,7 @@ function NewDemandeDialog({
           </Select>
         </div>
 
-        {chantierId && (
+        {!isMateriel && chantierId && (
           <div className="space-y-2">
             <Label>Aire de livraison {aires.length > 0 ? "*" : ""}</Label>
             {aires.length > 0 ? (
@@ -564,24 +568,28 @@ function NewDemandeDialog({
           </div>
         )}
 
-        <div className="space-y-2">
-          <Label htmlFor="nature">Nature de la livraison *</Label>
-          <Input id="nature" value={nature} onChange={(e) => setNature(e.target.value)}
-            placeholder="Béton, acier, terrassement…" required maxLength={120} />
-        </div>
+        {!isMateriel && (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="nature">Nature de la livraison *</Label>
+              <Input id="nature" value={nature} onChange={(e) => setNature(e.target.value)}
+                placeholder="Béton, acier, terrassement…" required maxLength={120} />
+            </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <Label htmlFor="q">Quantité</Label>
-            <Input id="q" type="number" step="0.01" value={quantite}
-              onChange={(e) => setQuantite(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="u">Unité</Label>
-            <Input id="u" value={unite} onChange={(e) => setUnite(e.target.value)}
-              placeholder="m³, t, u…" maxLength={20} />
-          </div>
-        </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="q">Quantité</Label>
+                <Input id="q" type="number" step="0.01" value={quantite}
+                  onChange={(e) => setQuantite(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="u">Unité</Label>
+                <Input id="u" value={unite} onChange={(e) => setUnite(e.target.value)}
+                  placeholder="m³, t, u…" maxLength={20} />
+              </div>
+            </div>
+          </>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
@@ -596,7 +604,7 @@ function NewDemandeDialog({
           </div>
         </div>
 
-        {aireId && debut && (
+        {!isMateriel && aireId && debut && (
           <div className="space-y-2">
             <div className="rounded-md border p-3">
             <div className="flex items-center justify-between">
@@ -654,7 +662,11 @@ function NewDemandeDialog({
 
         {materiels.length > 0 && (
           <div className="space-y-2">
-            <Label>Matériel nécessaire au déchargement (optionnel)</Label>
+            <Label>
+              {isMateriel
+                ? "Moyens matériel à réserver *"
+                : "Moyen matériel nécessaire au déchargement (optionnel)"}
+            </Label>
             <div className="space-y-2 rounded-md border p-3">
               {materiels.map((m) => {
                 const checked = m.id in selectedMats;
@@ -688,18 +700,27 @@ function NewDemandeDialog({
           </div>
         )}
 
+        {isMateriel && chantierId && materiels.length === 0 && (
+          <p className="text-xs text-muted-foreground rounded-md border border-dashed p-2">
+            Aucun moyen matériel n'a été défini sur ce chantier.
+          </p>
+        )}
+
         <div className="space-y-2">
           <Label htmlFor="com">Commentaire</Label>
           <Textarea id="com" value={commentaire} onChange={(e) => setCommentaire(e.target.value)}
             maxLength={500} />
         </div>
         <DialogFooter>
-          <Button type="submit" disabled={saving || !chantierId || !nature || !debut || (aires.length > 0 && !aireId)}>
-
-            {saving ? "Envoi…" : "Envoyer la demande"}
+          <Button type="submit" disabled={
+            saving || !chantierId || !debut ||
+            (isMateriel ? matEntries.length === 0 : (!nature || (aires.length > 0 && !aireId)))
+          }>
+            {saving ? "Envoi…" : (isMateriel ? "Réserver le matériel" : "Envoyer la demande")}
           </Button>
         </DialogFooter>
       </form>
     </DialogContent>
   );
 }
+
