@@ -59,7 +59,7 @@ function ChantiersPage() {
           <h1 className="font-display text-2xl font-semibold">Chantiers</h1>
           <p className="text-sm text-muted-foreground">Gestion des chantiers, aires de livraison et matériel.</p>
         </div>
-        {isConducteur && (
+        {isAdmin && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button><Plus className="size-4" /> Nouveau chantier</Button>
@@ -77,7 +77,7 @@ function ChantiersPage() {
       ) : items.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-sm text-muted-foreground">
-            Aucun chantier {isConducteur ? "— créez-en un pour démarrer." : "accessible pour le moment."}
+            Aucun chantier {isAdmin ? "— créez-en un pour démarrer." : "accessible pour le moment."}
           </CardContent>
         </Card>
       ) : (
