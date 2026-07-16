@@ -19,7 +19,9 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Plus, Check, X, CheckCircle2, Pencil } from "lucide-react";
+import { Check, X, CheckCircle2, Pencil, Truck, Wrench } from "lucide-react";
+
+type DemandeMode = "livraison" | "materiel";
 
 type Statut = "en_cours" | "acceptee" | "refusee" | "modifiee" | "terminee" | "annulee";
 
@@ -72,7 +74,7 @@ function DemandesPage() {
   const [chantiers, setChantiers] = useState<Chantier[]>([]);
   const [demandes, setDemandes] = useState<Demande[]>([]);
   const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(false);
+  const [openMode, setOpenMode] = useState<DemandeMode | null>(null);
   const [filterStatut, setFilterStatut] = useState<Statut | "all">("all");
   const [filterChantier, setFilterChantier] = useState<string>("all");
 
@@ -106,22 +108,31 @@ function DemandesPage() {
         <div>
           <h1 className="font-display text-2xl font-semibold">Demandes de créneaux</h1>
           <p className="text-sm text-muted-foreground">
-            {isPrestataire ? "Vos demandes de livraison." : "Demandes à valider et à suivre."}
+            {isPrestataire ? "Vos demandes de livraison et de moyens matériel." : "Demandes à valider et à suivre."}
           </p>
         </div>
         {isPrestataire && chantiers.length > 0 && (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button><Plus className="size-4" /> Nouvelle demande</Button>
-            </DialogTrigger>
-            <NewDemandeDialog
-              userId={user!.id}
-              chantiers={chantiers}
-              onCreated={() => { setOpen(false); load(); }}
-            />
-          </Dialog>
+          <div className="flex gap-2 flex-wrap">
+            <Button onClick={() => setOpenMode("livraison")}>
+              <Truck className="size-4" /> Nouvelle livraison
+            </Button>
+            <Button variant="outline" onClick={() => setOpenMode("materiel")}>
+              <Wrench className="size-4" /> Nouveau moyen matériel
+            </Button>
+            <Dialog open={openMode !== null} onOpenChange={(o) => !o && setOpenMode(null)}>
+              {openMode && (
+                <NewDemandeDialog
+                  mode={openMode}
+                  userId={user!.id}
+                  chantiers={chantiers}
+                  onCreated={() => { setOpenMode(null); load(); }}
+                />
+              )}
+            </Dialog>
+          </div>
         )}
       </div>
+
 
       <div className="flex gap-3 flex-wrap">
         <div className="w-48">
@@ -358,8 +369,9 @@ function ModifierDialog({ demande, onDone }: { demande: Demande; onDone: () => v
 
 
 function NewDemandeDialog({
-  userId, chantiers, onCreated,
-}: { userId: string; chantiers: Chantier[]; onCreated: () => void }) {
+  mode, userId, chantiers, onCreated,
+}: { mode: DemandeMode; userId: string; chantiers: Chantier[]; onCreated: () => void }) {
+  const isMateriel = mode === "materiel";
   const [chantierId, setChantierId] = useState<string>("");
   const [aires, setAires] = useState<Aire[]>([]);
   const [aireId, setAireId] = useState<string>("");
@@ -455,23 +467,42 @@ function NewDemandeDialog({
     return new Date(latestEnd);
   }, [conflict]);
 
+  const matEntries = Object.entries(selectedMats).filter(([, q]) => q > 0);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chantierId || !nature || !debut) return;
-    if (aires.length > 0 && !aireId) {
-      toast.error("Veuillez sélectionner une aire de livraison.");
-      return;
-    }
+    if (!chantierId || !debut) return;
 
+    let finalNature = nature;
+    if (isMateriel) {
+      if (matEntries.length === 0) {
+        toast.error("Sélectionnez au moins un moyen matériel à réserver.");
+        return;
+      }
+      // Nature auto-dérivée de la liste des matériels réservés
+      finalNature = matEntries
+        .map(([id, q]) => {
+          const m = materiels.find((x) => x.id === id);
+          return m ? `${m.nom} × ${q}` : "";
+        })
+        .filter(Boolean)
+        .join(", ") || "Réservation de moyen matériel";
+    } else {
+      if (!nature) return;
+      if (aires.length > 0 && !aireId) {
+        toast.error("Veuillez sélectionner une aire de livraison.");
+        return;
+      }
+    }
 
     setSaving(true);
     const { data: created, error } = await supabase.from("demandes").insert({
       chantier_id: chantierId,
       prestataire_id: userId,
-      aire_id: aireId || null,
-      nature,
-      quantite: quantite ? parseFloat(quantite) : null,
-      unite: unite || null,
+      aire_id: isMateriel ? null : (aireId || null),
+      nature: finalNature,
+      quantite: isMateriel ? null : (quantite ? parseFloat(quantite) : null),
+      unite: isMateriel ? null : (unite || null),
       debut: new Date(debut).toISOString(),
       duree_min: duree,
       commentaire: commentaire || null,
@@ -483,22 +514,27 @@ function NewDemandeDialog({
       return;
     }
 
-    const matRows = Object.entries(selectedMats)
-      .filter(([, q]) => q > 0)
-      .map(([materiel_id, q]) => ({ demande_id: created.id, materiel_id, quantite: q }));
+    const matRows = matEntries.map(([materiel_id, q]) => ({
+      demande_id: created.id, materiel_id, quantite: q,
+    }));
     if (matRows.length > 0) {
       const { error: mErr } = await supabase.from("demande_materiels").insert(matRows);
       if (mErr) toast.error(`Matériel : ${mErr.message}`);
     }
 
     setSaving(false);
-    toast.success("Demande envoyée");
+    toast.success(isMateriel ? "Réservation matériel envoyée" : "Demande de livraison envoyée");
     onCreated();
   };
 
+
   return (
     <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-      <DialogHeader><DialogTitle>Nouvelle demande de créneau</DialogTitle></DialogHeader>
+      <DialogHeader>
+        <DialogTitle>
+          {isMateriel ? "Nouvelle réservation de moyen matériel" : "Nouvelle demande de livraison"}
+        </DialogTitle>
+      </DialogHeader>
       <form onSubmit={submit} className="space-y-4">
         <div className="space-y-2">
           <Label>Chantier *</Label>
@@ -510,7 +546,7 @@ function NewDemandeDialog({
           </Select>
         </div>
 
-        {chantierId && (
+        {!isMateriel && chantierId && (
           <div className="space-y-2">
             <Label>Aire de livraison {aires.length > 0 ? "*" : ""}</Label>
             {aires.length > 0 ? (
@@ -532,24 +568,28 @@ function NewDemandeDialog({
           </div>
         )}
 
-        <div className="space-y-2">
-          <Label htmlFor="nature">Nature de la livraison *</Label>
-          <Input id="nature" value={nature} onChange={(e) => setNature(e.target.value)}
-            placeholder="Béton, acier, terrassement…" required maxLength={120} />
-        </div>
+        {!isMateriel && (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="nature">Nature de la livraison *</Label>
+              <Input id="nature" value={nature} onChange={(e) => setNature(e.target.value)}
+                placeholder="Béton, acier, terrassement…" required maxLength={120} />
+            </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <Label htmlFor="q">Quantité</Label>
-            <Input id="q" type="number" step="0.01" value={quantite}
-              onChange={(e) => setQuantite(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="u">Unité</Label>
-            <Input id="u" value={unite} onChange={(e) => setUnite(e.target.value)}
-              placeholder="m³, t, u…" maxLength={20} />
-          </div>
-        </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="q">Quantité</Label>
+                <Input id="q" type="number" step="0.01" value={quantite}
+                  onChange={(e) => setQuantite(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="u">Unité</Label>
+                <Input id="u" value={unite} onChange={(e) => setUnite(e.target.value)}
+                  placeholder="m³, t, u…" maxLength={20} />
+              </div>
+            </div>
+          </>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
@@ -564,7 +604,7 @@ function NewDemandeDialog({
           </div>
         </div>
 
-        {aireId && debut && (
+        {!isMateriel && aireId && debut && (
           <div className="space-y-2">
             <div className="rounded-md border p-3">
             <div className="flex items-center justify-between">
@@ -622,7 +662,11 @@ function NewDemandeDialog({
 
         {materiels.length > 0 && (
           <div className="space-y-2">
-            <Label>Matériel nécessaire au déchargement (optionnel)</Label>
+            <Label>
+              {isMateriel
+                ? "Moyens matériel à réserver *"
+                : "Moyen matériel nécessaire au déchargement (optionnel)"}
+            </Label>
             <div className="space-y-2 rounded-md border p-3">
               {materiels.map((m) => {
                 const checked = m.id in selectedMats;
@@ -656,18 +700,27 @@ function NewDemandeDialog({
           </div>
         )}
 
+        {isMateriel && chantierId && materiels.length === 0 && (
+          <p className="text-xs text-muted-foreground rounded-md border border-dashed p-2">
+            Aucun moyen matériel n'a été défini sur ce chantier.
+          </p>
+        )}
+
         <div className="space-y-2">
           <Label htmlFor="com">Commentaire</Label>
           <Textarea id="com" value={commentaire} onChange={(e) => setCommentaire(e.target.value)}
             maxLength={500} />
         </div>
         <DialogFooter>
-          <Button type="submit" disabled={saving || !chantierId || !nature || !debut || (aires.length > 0 && !aireId)}>
-
-            {saving ? "Envoi…" : "Envoyer la demande"}
+          <Button type="submit" disabled={
+            saving || !chantierId || !debut ||
+            (isMateriel ? matEntries.length === 0 : (!nature || (aires.length > 0 && !aireId)))
+          }>
+            {saving ? "Envoi…" : (isMateriel ? "Réserver le matériel" : "Envoyer la demande")}
           </Button>
         </DialogFooter>
       </form>
     </DialogContent>
   );
 }
+
