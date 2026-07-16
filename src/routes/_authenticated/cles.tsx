@@ -166,10 +166,10 @@ function ClesPage() {
           </TabsList>
 
           <TabsContent value="dashboard"><DashboardTab chantierId={chantierId} /></TabsContent>
-          <TabsContent value="demandes"><Placeholder title="Demandes d'accès" hint="Sera disponible dans le Lot 2 (workflow d'ouverture)." /></TabsContent>
+          <TabsContent value="demandes"><DemandesTab chantierId={chantierId} userId={user?.id ?? null} roles={roles} /></TabsContent>
           <TabsContent value="logements"><LogementsTab chantierId={chantierId} canManage={canManage} /></TabsContent>
           <TabsContent value="cles"><ClesTab chantierId={chantierId} canManage={canManage} userId={user?.id ?? null} /></TabsContent>
-          <TabsContent value="interventions"><Placeholder title="Interventions en cours" hint="Sera disponible dans le Lot 2." /></TabsContent>
+          <TabsContent value="interventions"><InterventionsTab chantierId={chantierId} userId={user?.id ?? null} roles={roles} /></TabsContent>
           <TabsContent value="nc"><Placeholder title="Non-conformités" hint="Sera disponible dans le Lot 3." /></TabsContent>
           <TabsContent value="rondes"><Placeholder title="Rondes" hint="Sera disponible dans le Lot 3." /></TabsContent>
           <TabsContent value="prise-poste"><PrisePosteTab chantierId={chantierId} userId={user?.id ?? null} roles={roles} /></TabsContent>
