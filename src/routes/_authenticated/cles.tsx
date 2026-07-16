@@ -334,7 +334,10 @@ function LogementsTab({ chantierId, canManage }: { chantierId: string; canManage
 
   return (
     <div className="space-y-3">
-      <Input placeholder="Rechercher un numéro de logement…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-sm" />
+      <div className="flex flex-wrap gap-2 items-end justify-between">
+        <Input placeholder="Rechercher un numéro de logement…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-sm" />
+        {canManage && <NewLogementDialog chantierId={chantierId} onDone={() => setReload((r) => r + 1)} />}
+      </div>
       <Card>
         <CardContent className="p-0 overflow-x-auto">
           <Table>
@@ -349,7 +352,9 @@ function LogementsTab({ chantierId, canManage }: { chantierId: string; canManage
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-6">Aucun logement.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-6">
+                  Aucun logement. Créez d'abord la structure (bâtiment, bloc, niveau) dans <strong>Paramètres &gt; Structure</strong>, puis cliquez sur <strong>Ajouter un logement</strong>.
+                </TableCell></TableRow>
               ) : filtered.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell className="font-medium">{r.numero}</TableCell>
@@ -379,6 +384,127 @@ function LogementsTab({ chantierId, canManage }: { chantierId: string; canManage
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function NewLogementDialog({ chantierId, onDone }: { chantierId: string; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [batiments, setBatiments] = useState<Batiment[]>([]);
+  const [blocs, setBlocs] = useState<Bloc[]>([]);
+  const [niveaux, setNiveaux] = useState<Niveau[]>([]);
+  const [batId, setBatId] = useState<string>("");
+  const [blocId, setBlocId] = useState<string>("");
+  const [niveauId, setNiveauId] = useState<string>("");
+  const [numero, setNumero] = useState("");
+  const [phase, setPhase] = useState<string>("opr");
+  const [sensibilite, setSensibilite] = useState<string>("standard");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      const { data: b } = await supabase.from("batiments").select("*").eq("chantier_id", chantierId).order("nom");
+      setBatiments((b ?? []) as Batiment[]);
+    })();
+    setBatId(""); setBlocId(""); setNiveauId(""); setNumero(""); setPhase("opr"); setSensibilite("standard");
+  }, [open, chantierId]);
+
+  useEffect(() => {
+    setBlocs([]); setBlocId(""); setNiveaux([]); setNiveauId("");
+    if (!batId) return;
+    (async () => {
+      const { data } = await supabase.from("blocs").select("*").eq("batiment_id", batId).order("nom");
+      setBlocs((data ?? []) as Bloc[]);
+    })();
+  }, [batId]);
+
+  useEffect(() => {
+    setNiveaux([]); setNiveauId("");
+    if (!blocId) return;
+    (async () => {
+      const { data } = await supabase.from("niveaux").select("*").eq("bloc_id", blocId).order("ordre");
+      setNiveaux((data ?? []) as Niveau[]);
+    })();
+  }, [blocId]);
+
+  const submit = async () => {
+    if (!niveauId || !numero.trim()) return toast.error("Niveau et numéro requis");
+    setSaving(true);
+    const { error } = await supabase.from("logements").insert({
+      niveau_id: niveauId, numero: numero.trim(), phase: phase as any, sensibilite: sensibilite as any,
+    });
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Logement ajouté");
+    setOpen(false);
+    onDone();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm"><Plus className="size-4 mr-1" /> Ajouter un logement</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>Ajouter un logement</DialogTitle></DialogHeader>
+        {batiments.length === 0 && (
+          <div className="text-sm text-muted-foreground bg-muted/50 rounded p-3">
+            Aucun bâtiment n'existe pour ce chantier. Créez d'abord la structure (bâtiment, bloc, niveau) dans l'onglet <strong>Paramètres &gt; Structure</strong>.
+          </div>
+        )}
+        <div className="space-y-3">
+          <div>
+            <Label>Bâtiment</Label>
+            <Select value={batId} onValueChange={setBatId}>
+              <SelectTrigger><SelectValue placeholder="Choisir un bâtiment" /></SelectTrigger>
+              <SelectContent>{batiments.map((b) => <SelectItem key={b.id} value={b.id}>{b.nom}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Bloc</Label>
+            <Select value={blocId} onValueChange={setBlocId} disabled={!batId}>
+              <SelectTrigger><SelectValue placeholder="Choisir un bloc" /></SelectTrigger>
+              <SelectContent>{blocs.map((b) => <SelectItem key={b.id} value={b.id}>{b.nom}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Niveau</Label>
+            <Select value={niveauId} onValueChange={setNiveauId} disabled={!blocId}>
+              <SelectTrigger><SelectValue placeholder="Choisir un niveau" /></SelectTrigger>
+              <SelectContent>{niveaux.map((n) => <SelectItem key={n.id} value={n.id}>{n.nom}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>Numéro</Label>
+              <Input value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="Ex: A101" />
+            </div>
+            <div>
+              <Label>Phase</Label>
+              <Select value={phase} onValueChange={setPhase}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{Object.entries(PHASE_LABEL).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <Label>Sensibilité</Label>
+            <Select value={sensibilite} onValueChange={setSensibilite}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="standard">Standard</SelectItem>
+                <SelectItem value="haute">Haute</SelectItem>
+                <SelectItem value="critique">Critique</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setOpen(false)}>Annuler</Button>
+          <Button onClick={submit} disabled={saving || !niveauId || !numero.trim()}>Ajouter</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
