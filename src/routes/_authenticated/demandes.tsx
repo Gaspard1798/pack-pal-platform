@@ -152,21 +152,21 @@ function DemandesPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="font-display text-2xl font-semibold">Demandes de créneaux</h1>
+        <div className="min-w-0">
+          <h1 className="font-display text-xl sm:text-2xl font-semibold">Demandes de créneaux</h1>
           <p className="text-sm text-muted-foreground">
             {isPrestataire ? "Vos demandes de livraison et de moyens matériel." : "Demandes à valider et à suivre."}
           </p>
         </div>
         {isPrestataire && chantiers.length > 0 && (
-          <div className="flex gap-2 flex-wrap">
-            <Button onClick={() => setOpenMode("livraison")}>
+          <div className="flex gap-2 flex-wrap w-full sm:w-auto">
+            <Button className="flex-1 sm:flex-none" onClick={() => setOpenMode("livraison")}>
               <Truck className="size-4" /> Nouvelle livraison
             </Button>
-            <Button variant="outline" onClick={() => setOpenMode("materiel")}>
-              <Wrench className="size-4" /> Nouveau moyen matériel
+            <Button className="flex-1 sm:flex-none" variant="outline" onClick={() => setOpenMode("materiel")}>
+              <Wrench className="size-4" /> Nouveau moyen
             </Button>
             <Dialog open={openMode !== null} onOpenChange={(o) => !o && setOpenMode(null)}>
               {openMode && (
@@ -183,48 +183,40 @@ function DemandesPage() {
       </div>
 
 
-      <div className="flex gap-3 flex-wrap">
-        <div className="w-48">
-          <Select value={filterStatut} onValueChange={(v) => setFilterStatut(v as Statut | "all")}>
-            <SelectTrigger><SelectValue placeholder="Statut" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tous les statuts</SelectItem>
-              {(Object.keys(STATUT_LABEL) as Statut[]).map((s) => (
-                <SelectItem key={s} value={s}>{STATUT_LABEL[s]}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="w-64">
-          <Select value={filterChantier} onValueChange={setFilterChantier}>
-            <SelectTrigger><SelectValue placeholder="Chantier" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tous les chantiers</SelectItem>
-              {chantiers.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.nom}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <Select value={filterStatut} onValueChange={(v) => setFilterStatut(v as Statut | "all")}>
+          <SelectTrigger><SelectValue placeholder="Statut" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les statuts</SelectItem>
+            {(Object.keys(STATUT_LABEL) as Statut[]).map((s) => (
+              <SelectItem key={s} value={s}>{STATUT_LABEL[s]}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filterChantier} onValueChange={setFilterChantier}>
+          <SelectTrigger><SelectValue placeholder="Chantier" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les chantiers</SelectItem>
+            {chantiers.map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.nom}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         {isConducteur && (
-          <div className="w-64">
-            <Select value={filterEntreprise} onValueChange={setFilterEntreprise}>
-              <SelectTrigger><SelectValue placeholder="Entreprise" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toutes les entreprises</SelectItem>
-                <SelectItem value="none">Sans entreprise</SelectItem>
-                {entreprises.map((e) => (
-                  <SelectItem key={e.id} value={e.id}>{e.nom}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <Select value={filterEntreprise} onValueChange={setFilterEntreprise}>
+            <SelectTrigger><SelectValue placeholder="Entreprise" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes les entreprises</SelectItem>
+              <SelectItem value="none">Sans entreprise</SelectItem>
+              {entreprises.map((e) => (
+                <SelectItem key={e.id} value={e.id}>{e.nom}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         )}
-        <div className="ml-auto">
-          <Button variant="outline" onClick={exportCsv} disabled={filtered.length === 0}>
-            <Download className="size-4" /> Export CSV
-          </Button>
-        </div>
+        <Button variant="outline" onClick={exportCsv} disabled={filtered.length === 0} className="w-full sm:w-auto sm:justify-self-end lg:col-start-4">
+          <Download className="size-4" /> Export CSV
+        </Button>
       </div>
 
       <Card>
@@ -235,21 +227,10 @@ function DemandesPage() {
           ) : filtered.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">Aucune demande.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Statut</TableHead>
-                  <TableHead>Chantier</TableHead>
-                  <TableHead>Nature</TableHead>
-                  <TableHead>Quantité</TableHead>
-                  <TableHead>Début</TableHead>
-                  <TableHead>Durée</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              <div className="md:hidden divide-y">
                 {filtered.map((d) => (
-                  <DemandeRow
+                  <DemandeCard
                     key={d.id}
                     demande={d}
                     chantierNom={chantiersById[d.chantier_id] ?? "—"}
@@ -258,11 +239,133 @@ function DemandesPage() {
                     onChanged={load}
                   />
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Statut</TableHead>
+                      <TableHead>Chantier</TableHead>
+                      <TableHead>Nature</TableHead>
+                      <TableHead>Quantité</TableHead>
+                      <TableHead>Début</TableHead>
+                      <TableHead>Durée</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((d) => (
+                      <DemandeRow
+                        key={d.id}
+                        demande={d}
+                        chantierNom={chantiersById[d.chantier_id] ?? "—"}
+                        isConducteur={isConducteur}
+                        isOwner={d.prestataire_id === user?.id}
+                        onChanged={load}
+                      />
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function DemandeCard({
+  demande, chantierNom, isConducteur, isOwner, onChanged,
+}: {
+  demande: Demande; chantierNom: string;
+  isConducteur: boolean; isOwner: boolean; onChanged: () => void;
+}) {
+  const [modifOpen, setModifOpen] = useState(false);
+
+  const updateStatut = async (statut: Statut, extra?: Partial<Demande>) => {
+    const { error } = await supabase.from("demandes").update({ statut, ...extra }).eq("id", demande.id);
+    if (error) toast.error(error.message);
+    else { toast.success(`Demande ${STATUT_LABEL[statut].toLowerCase()}`); onChanged(); }
+  };
+  const refuse = async () => {
+    const raison = window.prompt("Raison du refus ?");
+    if (!raison) return;
+    await updateStatut("refusee", { raison_refus: raison });
+  };
+
+  return (
+    <div className="p-4 space-y-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="font-medium truncate">{chantierNom}</div>
+          <div className="text-sm text-muted-foreground break-words">{demande.nature}</div>
+        </div>
+        <Badge variant={STATUT_VARIANT[demande.statut]} className="shrink-0">
+          {STATUT_LABEL[demande.statut]}
+        </Badge>
+      </div>
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        <div>
+          <div className="text-muted-foreground">Début</div>
+          <div>{new Date(demande.debut).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}</div>
+        </div>
+        <div>
+          <div className="text-muted-foreground">Durée</div>
+          <div>{demande.duree_min} min</div>
+        </div>
+        {demande.quantite != null && (
+          <div className="col-span-2">
+            <div className="text-muted-foreground">Quantité</div>
+            <div>{demande.quantite} {demande.unite ?? ""}</div>
+          </div>
+        )}
+      </div>
+      {demande.statut === "modifiee" && demande.commentaire && (
+        <div className="text-xs text-blue-600 dark:text-blue-400 break-words">
+          Proposition : {demande.commentaire}
+        </div>
+      )}
+      {demande.statut === "refusee" && demande.raison_refus && (
+        <div className="text-xs text-destructive break-words">
+          Motif : {demande.raison_refus}
+        </div>
+      )}
+      <div className="flex flex-wrap gap-2 pt-1">
+        {isConducteur && (demande.statut === "en_cours" || demande.statut === "modifiee") && (
+          <>
+            <Button size="sm" variant="outline" className="flex-1 min-w-[110px]" onClick={() => updateStatut("acceptee")}>
+              <Check className="size-4" /> Accepter
+            </Button>
+            <Dialog open={modifOpen} onOpenChange={setModifOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline" className="flex-1 min-w-[110px]">
+                  <Pencil className="size-4" /> Proposer
+                </Button>
+              </DialogTrigger>
+              <ModifierDialog demande={demande} onDone={() => { setModifOpen(false); onChanged(); }} />
+            </Dialog>
+            <Button size="sm" variant="outline" className="flex-1 min-w-[110px]" onClick={refuse}>
+              <X className="size-4" /> Refuser
+            </Button>
+          </>
+        )}
+        {isConducteur && demande.statut === "acceptee" && (
+          <Button size="sm" variant="outline" className="flex-1" onClick={() => updateStatut("terminee")}>
+            <CheckCircle2 className="size-4" /> Clore
+          </Button>
+        )}
+        {isOwner && demande.statut === "modifiee" && (
+          <Button size="sm" variant="default" className="flex-1" onClick={() => updateStatut("acceptee")}>
+            <Check className="size-4" /> Accepter la proposition
+          </Button>
+        )}
+        {isOwner && (demande.statut === "en_cours" || demande.statut === "acceptee" || demande.statut === "modifiee") && (
+          <Button size="sm" variant="ghost" onClick={() => updateStatut("annulee")}>
+            Annuler
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
