@@ -19,7 +19,9 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Plus, Check, X, CheckCircle2, Pencil } from "lucide-react";
+import { Plus, Check, X, CheckCircle2, Pencil, Truck, Wrench } from "lucide-react";
+
+type DemandeMode = "livraison" | "materiel";
 
 type Statut = "en_cours" | "acceptee" | "refusee" | "modifiee" | "terminee" | "annulee";
 
