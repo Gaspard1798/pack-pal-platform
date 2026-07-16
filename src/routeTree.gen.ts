@@ -24,6 +24,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedChantiersRouteImport } from './routes/_authenticated/chantiers'
 import { Route as AuthenticatedChantiersIdRouteImport } from './routes/_authenticated/chantiers.$id'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
+import { Route as AuthenticatedAdminEntreprisesRouteImport } from './routes/_authenticated/admin/entreprises'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -101,6 +102,12 @@ const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
   path: '/admin/users',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAdminEntreprisesRoute =
+  AuthenticatedAdminEntreprisesRouteImport.update({
+    id: '/admin/entreprises',
+    path: '/admin/entreprises',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -115,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/statistiques': typeof AuthenticatedStatistiquesRoute
   '/terrain': typeof AuthenticatedTerrainRoute
+  '/admin/entreprises': typeof AuthenticatedAdminEntreprisesRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/chantiers/$id': typeof AuthenticatedChantiersIdRoute
 }
@@ -131,6 +139,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/statistiques': typeof AuthenticatedStatistiquesRoute
   '/terrain': typeof AuthenticatedTerrainRoute
+  '/admin/entreprises': typeof AuthenticatedAdminEntreprisesRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/chantiers/$id': typeof AuthenticatedChantiersIdRoute
 }
@@ -149,6 +158,7 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/statistiques': typeof AuthenticatedStatistiquesRoute
   '/_authenticated/terrain': typeof AuthenticatedTerrainRoute
+  '/_authenticated/admin/entreprises': typeof AuthenticatedAdminEntreprisesRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/chantiers/$id': typeof AuthenticatedChantiersIdRoute
 }
@@ -167,6 +177,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/statistiques'
     | '/terrain'
+    | '/admin/entreprises'
     | '/admin/users'
     | '/chantiers/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -183,6 +194,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/statistiques'
     | '/terrain'
+    | '/admin/entreprises'
     | '/admin/users'
     | '/chantiers/$id'
   id:
@@ -200,6 +212,7 @@ export interface FileRouteTypes {
     | '/_authenticated/profile'
     | '/_authenticated/statistiques'
     | '/_authenticated/terrain'
+    | '/_authenticated/admin/entreprises'
     | '/_authenticated/admin/users'
     | '/_authenticated/chantiers/$id'
   fileRoutesById: FileRoutesById
@@ -320,6 +333,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminUsersRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/admin/entreprises': {
+      id: '/_authenticated/admin/entreprises'
+      path: '/admin/entreprises'
+      fullPath: '/admin/entreprises'
+      preLoaderRoute: typeof AuthenticatedAdminEntreprisesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
@@ -345,6 +365,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedStatistiquesRoute: typeof AuthenticatedStatistiquesRoute
   AuthenticatedTerrainRoute: typeof AuthenticatedTerrainRoute
+  AuthenticatedAdminEntreprisesRoute: typeof AuthenticatedAdminEntreprisesRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
 }
 
@@ -356,6 +377,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedStatistiquesRoute: AuthenticatedStatistiquesRoute,
   AuthenticatedTerrainRoute: AuthenticatedTerrainRoute,
+  AuthenticatedAdminEntreprisesRoute: AuthenticatedAdminEntreprisesRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
 }
 
