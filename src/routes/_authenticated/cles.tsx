@@ -865,9 +865,9 @@ function StructureTab({ chantierId, canManage }: { chantierId: string; canManage
     if (error) return toast.error(error.message);
     setNewLogNum(""); setReload((r) => r + 1);
   };
-  const del = async (table: string, id: string) => {
+  const del = async (table: "batiments" | "blocs" | "niveaux" | "logements", id: string) => {
     if (!confirm("Supprimer ?")) return;
-    const { error } = await supabase.from(table).delete().eq("id", id);
+    const { error } = await (supabase.from(table) as any).delete().eq("id", id);
     if (error) return toast.error(error.message);
     setReload((r) => r + 1);
   };
