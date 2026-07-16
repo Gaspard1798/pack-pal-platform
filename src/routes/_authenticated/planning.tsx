@@ -33,6 +33,15 @@ const STATUT_COLOR: Record<string, string> = {
   annulee: "bg-muted text-muted-foreground border-border line-through",
 };
 
+const STATUT_LABEL: Record<string, string> = {
+  en_cours: "En attente",
+  acceptee: "Acceptée",
+  modifiee: "Modifiée",
+  terminee: "Terminée",
+  refusee: "Refusée",
+  annulee: "Annulée",
+};
+
 const ACTIVE = new Set(["en_cours", "acceptee", "modifiee"]);
 
 function toISODate(d: Date) {
