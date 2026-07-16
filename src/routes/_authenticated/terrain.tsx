@@ -102,16 +102,17 @@ function TerrainPage() {
 
   const aireName = (id: string | null) => id ? (aires.find((a) => a.id === id)?.nom ?? "—") : "—";
 
-  const onCheckin = async (d: Demande) => {
+  const onCheckin = async (d: Demande, isoDate?: string) => {
+    const stamp = isoDate ?? new Date().toISOString();
     const existing = venuesByDemande.get(d.id);
     if (existing) {
       const { error } = await supabase.from("venues")
-        .update({ arrivee_reelle: new Date().toISOString(), enregistre_par: user?.id })
+        .update({ arrivee_reelle: stamp, enregistre_par: user?.id })
         .eq("id", existing.id);
       if (error) return toast.error(error.message);
     } else {
       const { error } = await supabase.from("venues").insert({
-        demande_id: d.id, arrivee_reelle: new Date().toISOString(), enregistre_par: user?.id,
+        demande_id: d.id, arrivee_reelle: stamp, enregistre_par: user?.id,
       });
       if (error) return toast.error(error.message);
     }
@@ -180,7 +181,7 @@ function TerrainPage() {
               d={d}
               venue={venuesByDemande.get(d.id)}
               aireName={aireName(d.aire_id)}
-              onCheckin={() => onCheckin(d)}
+              onCheckin={(iso) => onCheckin(d, iso)}
               onCheckout={() => onCheckout(d)}
               onChanged={loadData}
             />
@@ -195,7 +196,7 @@ function DemandeCard({
   d, venue, aireName, onCheckin, onCheckout, onChanged,
 }: {
   d: Demande; venue?: Venue; aireName: string;
-  onCheckin: () => void; onCheckout: () => void; onChanged: () => void;
+  onCheckin: (iso?: string) => void; onCheckout: () => void; onChanged: () => void;
 }) {
   const start = new Date(d.debut);
   const end = new Date(start.getTime() + d.duree_min * 60000);
@@ -253,7 +254,7 @@ function DemandeCard({
 
         <div className="flex flex-wrap gap-2">
           {!arrived && (
-            <Button size="sm" onClick={onCheckin}><LogIn className="size-4" /> Arrivée</Button>
+            <CheckinDialog defaultDate={start} onConfirm={onCheckin} />
           )}
           {arrived && !departed && (
             <Button size="sm" variant="secondary" onClick={onCheckout}>
@@ -449,6 +450,69 @@ function VenuePhotoThumb({ path }: { path: string }) {
     <a href={url} target="_blank" rel="noreferrer" className="block h-14 w-14 overflow-hidden rounded border">
       <img src={url} alt="Photo terrain" className="h-full w-full object-cover" loading="lazy" />
     </a>
+  );
+}
+
+function toLocalInputValue(d: Date) {
+  const tz = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - tz).toISOString().slice(0, 16);
+}
+
+function CheckinDialog({
+  defaultDate, onConfirm,
+}: { defaultDate: Date; onConfirm: (iso?: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(() => toLocalInputValue(new Date()));
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => {
+      setOpen(o);
+      if (o) setValue(toLocalInputValue(new Date()));
+    }}>
+      <DialogTrigger asChild>
+        <Button size="sm"><LogIn className="size-4" /> Arrivée</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Enregistrer l'arrivée</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="text-xs text-muted-foreground">
+            Créneau prévu : {defaultDate.toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Heure d'arrivée</Label>
+            <Input
+              type="datetime-local"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              type="button"
+              onClick={() => setValue(toLocalInputValue(new Date()))}
+            >
+              Maintenant
+            </Button>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
+          <Button
+            onClick={() => {
+              const iso = value ? new Date(value).toISOString() : new Date().toISOString();
+              onConfirm(iso);
+              setOpen(false);
+            }}
+          >
+            Confirmer
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
