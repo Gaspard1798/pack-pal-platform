@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import {
   KeyRound, Building2, Building, Layers, Home, Wrench, UsersRound,
   QrCode, ScanLine, Plus, Trash2, ClipboardList, LogIn, LogOut,
+  Camera, Check, X, PlayCircle, StopCircle, AlertTriangle,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -166,10 +167,10 @@ function ClesPage() {
           </TabsList>
 
           <TabsContent value="dashboard"><DashboardTab chantierId={chantierId} /></TabsContent>
-          <TabsContent value="demandes"><Placeholder title="Demandes d'accès" hint="Sera disponible dans le Lot 2 (workflow d'ouverture)." /></TabsContent>
+          <TabsContent value="demandes"><DemandesTab chantierId={chantierId} userId={user?.id ?? null} roles={roles} /></TabsContent>
           <TabsContent value="logements"><LogementsTab chantierId={chantierId} canManage={canManage} /></TabsContent>
           <TabsContent value="cles"><ClesTab chantierId={chantierId} canManage={canManage} userId={user?.id ?? null} /></TabsContent>
-          <TabsContent value="interventions"><Placeholder title="Interventions en cours" hint="Sera disponible dans le Lot 2." /></TabsContent>
+          <TabsContent value="interventions"><InterventionsTab chantierId={chantierId} userId={user?.id ?? null} roles={roles} /></TabsContent>
           <TabsContent value="nc"><Placeholder title="Non-conformités" hint="Sera disponible dans le Lot 3." /></TabsContent>
           <TabsContent value="rondes"><Placeholder title="Rondes" hint="Sera disponible dans le Lot 3." /></TabsContent>
           <TabsContent value="prise-poste"><PrisePosteTab chantierId={chantierId} userId={user?.id ?? null} roles={roles} /></TabsContent>
@@ -1093,5 +1094,575 @@ function CompagnonsTab({ canManage }: { canManage: boolean }) {
         </Table>
       </CardContent>
     </Card>
+  );
+}
+
+/* ---------- DEMANDES D'ACCÈS ---------- */
+type DemandeAcces = {
+  id: string; chantier_id: string; logement_id: string; demandeur_id: string;
+  compagnon_id: string | null; lot_id: string | null;
+  motif: string; date_prevue: string; heure_debut: string; heure_fin: string;
+  urgence: "normale" | "prioritaire" | "urgente";
+  statut: "en_attente" | "acceptee" | "refusee" | "terminee" | "annulee";
+  raison_refus: string | null; created_at: string;
+};
+
+const DEMANDE_LABEL: Record<DemandeAcces["statut"], string> = {
+  en_attente: "En attente", acceptee: "Acceptée", refusee: "Refusée",
+  terminee: "Terminée", annulee: "Annulée",
+};
+const DEMANDE_VARIANT: Record<DemandeAcces["statut"], "default" | "secondary" | "destructive" | "outline"> = {
+  en_attente: "secondary", acceptee: "default", refusee: "destructive",
+  terminee: "outline", annulee: "outline",
+};
+
+function DemandesTab({ chantierId, userId, roles }: { chantierId: string; userId: string | null; roles: AppRole[] }) {
+  const canValidate = hasAny(roles, ["admin", "conducteur", "gestionnaire_cles"]);
+  const canCreate = hasAny(roles, ["prestataire", "admin", "conducteur", "gestionnaire_cles"]);
+  const [rows, setRows] = useState<DemandeAcces[]>([]);
+  const [logements, setLogements] = useState<Record<string, string>>({});
+  const [filter, setFilter] = useState<"tous" | DemandeAcces["statut"]>("tous");
+  const [reason, setReason] = useState<Record<string, string>>({});
+
+  const load = async () => {
+    const { data: d } = await supabase.from("demandes_acces").select("*")
+      .eq("chantier_id", chantierId).order("created_at", { ascending: false });
+    setRows((d ?? []) as any);
+    const { data: b } = await supabase.from("batiments").select("id").eq("chantier_id", chantierId);
+    const bIds = (b ?? []).map((x: any) => x.id);
+    if (bIds.length) {
+      const { data: bl } = await supabase.from("blocs").select("id").in("batiment_id", bIds);
+      const blIds = (bl ?? []).map((x: any) => x.id);
+      if (blIds.length) {
+        const { data: nv } = await supabase.from("niveaux").select("id").in("bloc_id", blIds);
+        const nvIds = (nv ?? []).map((x: any) => x.id);
+        if (nvIds.length) {
+          const { data: lg } = await supabase.from("logements").select("id, numero").in("niveau_id", nvIds);
+          const map: Record<string, string> = {};
+          (lg ?? []).forEach((x: any) => { map[x.id] = x.numero; });
+          setLogements(map);
+        }
+      }
+    }
+  };
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [chantierId]);
+
+  const setStatut = async (id: string, statut: DemandeAcces["statut"], raison?: string) => {
+    const patch: any = { statut };
+    if (raison) patch.raison_refus = raison;
+    if (userId) patch.valide_par = userId;
+    const { error } = await supabase.from("demandes_acces").update(patch).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Demande mise à jour");
+    load();
+  };
+
+  const filtered = rows.filter((r) => filter === "tous" || r.statut === filter);
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-base flex items-center gap-2"><ClipboardList className="size-4" /> Demandes d'accès logements</CardTitle>
+        <div className="flex items-center gap-2">
+          <Select value={filter} onValueChange={(v) => setFilter(v as any)}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="tous">Tous statuts</SelectItem>
+              <SelectItem value="en_attente">En attente</SelectItem>
+              <SelectItem value="acceptee">Acceptées</SelectItem>
+              <SelectItem value="refusee">Refusées</SelectItem>
+              <SelectItem value="terminee">Terminées</SelectItem>
+              <SelectItem value="annulee">Annulées</SelectItem>
+            </SelectContent>
+          </Select>
+          {canCreate && userId && <NewDemandeDialog chantierId={chantierId} userId={userId} onDone={load} />}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Logement</TableHead><TableHead>Motif</TableHead>
+              <TableHead>Date</TableHead><TableHead>Créneau</TableHead>
+              <TableHead>Urgence</TableHead><TableHead>Statut</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.map((d) => (
+              <TableRow key={d.id}>
+                <TableCell className="font-medium">{logements[d.logement_id] ?? "—"}</TableCell>
+                <TableCell className="max-w-xs truncate" title={d.motif}>{d.motif}</TableCell>
+                <TableCell>{new Date(d.date_prevue).toLocaleDateString("fr-FR")}</TableCell>
+                <TableCell>{d.heure_debut.slice(0,5)}–{d.heure_fin.slice(0,5)}</TableCell>
+                <TableCell>
+                  <Badge variant={d.urgence === "urgente" ? "destructive" : d.urgence === "prioritaire" ? "default" : "secondary"}>
+                    {d.urgence}
+                  </Badge>
+                </TableCell>
+                <TableCell><Badge variant={DEMANDE_VARIANT[d.statut]}>{DEMANDE_LABEL[d.statut]}</Badge></TableCell>
+                <TableCell className="text-right">
+                  {d.statut === "en_attente" && canValidate && (
+                    <div className="flex items-center gap-1 justify-end">
+                      <Button size="sm" variant="outline" onClick={() => setStatut(d.id, "acceptee")}>
+                        <Check className="size-3 mr-1" />Accepter
+                      </Button>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button size="sm" variant="destructive"><X className="size-3 mr-1" />Refuser</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader><DialogTitle>Motif de refus</DialogTitle></DialogHeader>
+                          <Textarea
+                            placeholder="Raison du refus…"
+                            value={reason[d.id] ?? ""}
+                            onChange={(e) => setReason((r) => ({ ...r, [d.id]: e.target.value }))}
+                          />
+                          <DialogFooter>
+                            <Button variant="destructive" onClick={() => setStatut(d.id, "refusee", reason[d.id])}>
+                              Confirmer le refus
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  )}
+                  {d.statut === "en_attente" && d.demandeur_id === userId && (
+                    <Button size="sm" variant="ghost" onClick={() => setStatut(d.id, "annulee")}>Annuler</Button>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+            {filtered.length === 0 && (
+              <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-6">
+                Aucune demande.
+              </TableCell></TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+function NewDemandeDialog({ chantierId, userId, onDone }: { chantierId: string; userId: string; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [logements, setLogements] = useState<Array<{ id: string; numero: string }>>([]);
+  const [lots, setLots] = useState<Lot[]>([]);
+  const [compagnons, setCompagnons] = useState<Compagnon[]>([]);
+  const [logementId, setLogementId] = useState("");
+  const [lotId, setLotId] = useState<string>("");
+  const [compagnonId, setCompagnonId] = useState<string>("");
+  const [motif, setMotif] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [hDebut, setHDebut] = useState("08:00");
+  const [hFin, setHFin] = useState("12:00");
+  const [urgence, setUrgence] = useState<"normale" | "prioritaire" | "urgente">("normale");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      const { data: b } = await supabase.from("batiments").select("id").eq("chantier_id", chantierId);
+      const bIds = (b ?? []).map((x: any) => x.id);
+      let lgs: any[] = [];
+      if (bIds.length) {
+        const { data: bl } = await supabase.from("blocs").select("id").in("batiment_id", bIds);
+        const blIds = (bl ?? []).map((x: any) => x.id);
+        if (blIds.length) {
+          const { data: nv } = await supabase.from("niveaux").select("id").in("bloc_id", blIds);
+          const nvIds = (nv ?? []).map((x: any) => x.id);
+          if (nvIds.length) {
+            const { data: lg } = await supabase.from("logements").select("id, numero").in("niveau_id", nvIds).order("numero");
+            lgs = lg ?? [];
+          }
+        }
+      }
+      setLogements(lgs);
+      const { data: lo } = await supabase.from("lots").select("*").eq("chantier_id", chantierId).order("nom");
+      setLots((lo ?? []) as Lot[]);
+      const { data: co } = await supabase.from("compagnons").select("*").eq("actif", true).order("nom");
+      setCompagnons((co ?? []) as Compagnon[]);
+    })();
+  }, [open, chantierId]);
+
+  const submit = async () => {
+    if (!logementId || !motif.trim()) return toast.error("Logement et motif requis");
+    if (hDebut >= hFin) return toast.error("Créneau invalide");
+    setSaving(true);
+    const { error } = await supabase.from("demandes_acces").insert({
+      chantier_id: chantierId, logement_id: logementId, demandeur_id: userId,
+      lot_id: lotId || null, compagnon_id: compagnonId || null,
+      motif: motif.trim(), date_prevue: date, heure_debut: hDebut, heure_fin: hFin,
+      urgence: urgence as any,
+    } as any);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Demande créée");
+    setOpen(false);
+    setLogementId(""); setLotId(""); setCompagnonId(""); setMotif("");
+    onDone();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild><Button size="sm"><Plus className="size-4 mr-1" /> Nouvelle demande</Button></DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>Nouvelle demande d'accès</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Logement *</Label>
+            <Select value={logementId} onValueChange={setLogementId}>
+              <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
+              <SelectContent>
+                {logements.map((l) => <SelectItem key={l.id} value={l.id}>{l.numero}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>Lot</Label>
+              <Select value={lotId} onValueChange={setLotId}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  {lots.map((l) => <SelectItem key={l.id} value={l.id}>{l.nom}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Compagnon</Label>
+              <Select value={compagnonId} onValueChange={setCompagnonId}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  {compagnons.map((c) => <SelectItem key={c.id} value={c.id}>{c.prenom} {c.nom}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <Label>Motif *</Label>
+            <Textarea value={motif} onChange={(e) => setMotif(e.target.value)} maxLength={500} rows={2} placeholder="Nature de l'intervention…" />
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div><Label>Date</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
+            <div><Label>Début</Label><Input type="time" value={hDebut} onChange={(e) => setHDebut(e.target.value)} /></div>
+            <div><Label>Fin</Label><Input type="time" value={hFin} onChange={(e) => setHFin(e.target.value)} /></div>
+          </div>
+          <div>
+            <Label>Urgence</Label>
+            <Select value={urgence} onValueChange={(v) => setUrgence(v as any)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="normale">Normale</SelectItem>
+                <SelectItem value="prioritaire">Prioritaire</SelectItem>
+                <SelectItem value="urgente">Urgente</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setOpen(false)}>Annuler</Button>
+          <Button onClick={submit} disabled={saving}>Créer</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ---------- INTERVENTIONS (Assistant Entrée / Sortie) ---------- */
+type Intervention = {
+  id: string; demande_id: string | null; chantier_id: string; logement_id: string;
+  compagnon_id: string | null; coureur_id: string; trousseau_id: string | null;
+  heure_ouverture: string; heure_fermeture: string | null;
+  statut: "en_cours" | "terminee" | "bloquee";
+  photos_avant: string[]; photos_apres: string[]; notes: string | null;
+};
+
+async function uploadOprPhoto(file: File, chantierId: string): Promise<string | null> {
+  const ext = file.name.split(".").pop() || "jpg";
+  const path = `${chantierId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error } = await supabase.storage.from("opr-photos").upload(path, file, { upsert: false });
+  if (error) { toast.error(error.message); return null; }
+  return path;
+}
+
+function PhotoUploader({ paths, onChange, chantierId, label }: {
+  paths: string[]; onChange: (p: string[]) => void; chantierId: string; label: string;
+}) {
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  useEffect(() => {
+    (async () => {
+      const next: Record<string, string> = {};
+      for (const p of paths) {
+        const { data } = await supabase.storage.from("opr-photos").createSignedUrl(p, 3600);
+        if (data?.signedUrl) next[p] = data.signedUrl;
+      }
+      setUrls(next);
+    })();
+  }, [paths]);
+
+  const onFiles = async (files: FileList | null) => {
+    if (!files) return;
+    const added: string[] = [];
+    for (const f of Array.from(files)) {
+      const p = await uploadOprPhoto(f, chantierId);
+      if (p) added.push(p);
+    }
+    if (added.length) onChange([...paths, ...added]);
+  };
+
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <div className="flex flex-wrap gap-2">
+        {paths.map((p) => (
+          <div key={p} className="relative">
+            {urls[p] ? <img src={urls[p]} className="size-16 object-cover rounded border" alt="" /> : <div className="size-16 bg-muted rounded" />}
+            <button type="button" onClick={() => onChange(paths.filter((x) => x !== p))}
+              className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5">
+              <X className="size-3" />
+            </button>
+          </div>
+        ))}
+        <label className="size-16 border border-dashed rounded flex items-center justify-center cursor-pointer text-muted-foreground hover:bg-muted">
+          <Camera className="size-5" />
+          <input type="file" accept="image/*" capture="environment" multiple hidden onChange={(e) => onFiles(e.target.files)} />
+        </label>
+      </div>
+    </div>
+  );
+}
+
+function InterventionsTab({ chantierId, userId, roles }: { chantierId: string; userId: string | null; roles: AppRole[] }) {
+  const canOperate = hasAny(roles, ["admin", "conducteur", "gestionnaire_cles", "operateur"]);
+  const [rows, setRows] = useState<Intervention[]>([]);
+  const [accepted, setAccepted] = useState<DemandeAcces[]>([]);
+  const [logements, setLogements] = useState<Record<string, string>>({});
+  const [trousseaux, setTrousseaux] = useState<Trousseau[]>([]);
+
+  const load = async () => {
+    const { data: iv } = await supabase.from("interventions").select("*")
+      .eq("chantier_id", chantierId).order("heure_ouverture", { ascending: false }).limit(100);
+    setRows((iv ?? []) as any);
+    const { data: dm } = await supabase.from("demandes_acces").select("*")
+      .eq("chantier_id", chantierId).eq("statut", "acceptee");
+    setAccepted((dm ?? []) as any);
+    const { data: t } = await supabase.from("trousseaux").select("*").eq("chantier_id", chantierId);
+    setTrousseaux((t ?? []) as any);
+    // logements labels
+    const { data: b } = await supabase.from("batiments").select("id").eq("chantier_id", chantierId);
+    const bIds = (b ?? []).map((x: any) => x.id);
+    if (bIds.length) {
+      const { data: bl } = await supabase.from("blocs").select("id").in("batiment_id", bIds);
+      const blIds = (bl ?? []).map((x: any) => x.id);
+      if (blIds.length) {
+        const { data: nv } = await supabase.from("niveaux").select("id").in("bloc_id", blIds);
+        const nvIds = (nv ?? []).map((x: any) => x.id);
+        if (nvIds.length) {
+          const { data: lg } = await supabase.from("logements").select("id, numero").in("niveau_id", nvIds);
+          const map: Record<string, string> = {};
+          (lg ?? []).forEach((x: any) => { map[x.id] = x.numero; });
+          setLogements(map);
+        }
+      }
+    }
+  };
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [chantierId]);
+
+  const enCours = rows.filter((r) => r.statut === "en_cours");
+  const terminees = rows.filter((r) => r.statut !== "en_cours");
+
+  return (
+    <div className="space-y-4">
+      {canOperate && userId && accepted.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><PlayCircle className="size-4" /> Ouvrir une intervention</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            {accepted.map((d) => (
+              <div key={d.id} className="flex items-center justify-between border rounded p-2">
+                <div className="text-sm">
+                  <div className="font-medium">Logement {logements[d.logement_id] ?? "—"}</div>
+                  <div className="text-xs text-muted-foreground">{d.motif} · {new Date(d.date_prevue).toLocaleDateString("fr-FR")} {d.heure_debut.slice(0,5)}–{d.heure_fin.slice(0,5)}</div>
+                </div>
+                <OpenInterventionDialog demande={d} userId={userId} chantierId={chantierId} trousseaux={trousseaux} onDone={load} />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader><CardTitle className="text-base">Interventions en cours ({enCours.length})</CardTitle></CardHeader>
+        <CardContent className="space-y-2">
+          {enCours.map((iv) => (
+            <InterventionRow key={iv.id} iv={iv} logements={logements} canOperate={canOperate} onDone={load} chantierId={chantierId} />
+          ))}
+          {enCours.length === 0 && <div className="text-sm text-muted-foreground">Aucune intervention en cours.</div>}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle className="text-base">Historique récent</CardTitle></CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader><TableRow>
+              <TableHead>Logement</TableHead><TableHead>Ouverture</TableHead>
+              <TableHead>Fermeture</TableHead><TableHead>Statut</TableHead>
+            </TableRow></TableHeader>
+            <TableBody>
+              {terminees.slice(0, 30).map((iv) => (
+                <TableRow key={iv.id}>
+                  <TableCell>{logements[iv.logement_id] ?? "—"}</TableCell>
+                  <TableCell>{new Date(iv.heure_ouverture).toLocaleString("fr-FR")}</TableCell>
+                  <TableCell>{iv.heure_fermeture ? new Date(iv.heure_fermeture).toLocaleString("fr-FR") : "—"}</TableCell>
+                  <TableCell><Badge variant={iv.statut === "bloquee" ? "destructive" : "outline"}>{iv.statut}</Badge></TableCell>
+                </TableRow>
+              ))}
+              {terminees.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-4">—</TableCell></TableRow>}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function OpenInterventionDialog({ demande, userId, chantierId, trousseaux, onDone }: {
+  demande: DemandeAcces; userId: string; chantierId: string; trousseaux: Trousseau[]; onDone: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [trousseauId, setTrousseauId] = useState<string>("");
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const submit = async () => {
+    setSaving(true);
+    const { data: iv, error } = await supabase.from("interventions").insert({
+      demande_id: demande.id, chantier_id: chantierId, logement_id: demande.logement_id,
+      compagnon_id: demande.compagnon_id, coureur_id: userId,
+      trousseau_id: trousseauId || null,
+      photos_avant: photos, notes: notes.trim() || null,
+    } as any).select("id").single();
+    if (error) { setSaving(false); return toast.error(error.message); }
+    await supabase.from("logements").update({ statut: "intervention_en_cours" as any }).eq("id", demande.logement_id);
+    if (trousseauId) {
+      await supabase.from("mouvements_cles").insert({
+        trousseau_id: trousseauId, type: "ouverture" as any, emetteur_id: userId,
+        logement_id: demande.logement_id, note: `Intervention ${iv?.id}`,
+      } as any);
+    }
+    setSaving(false);
+    toast.success("Intervention démarrée");
+    setOpen(false); setPhotos([]); setNotes(""); setTrousseauId("");
+    onDone();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild><Button size="sm"><PlayCircle className="size-4 mr-1" /> Démarrer</Button></DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>Assistant d'entrée</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="text-xs text-muted-foreground">
+            Motif : {demande.motif}
+          </div>
+          <div>
+            <Label>Trousseau utilisé</Label>
+            <Select value={trousseauId} onValueChange={setTrousseauId}>
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                {trousseaux.map((t) => <SelectItem key={t.id} value={t.id}>{t.reference}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <PhotoUploader paths={photos} onChange={setPhotos} chantierId={chantierId} label="Photos avant ouverture" />
+          <div>
+            <Label>Notes d'entrée</Label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} maxLength={500} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setOpen(false)}>Annuler</Button>
+          <Button onClick={submit} disabled={saving}>Démarrer l'intervention</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function InterventionRow({ iv, logements, canOperate, onDone, chantierId }: {
+  iv: Intervention; logements: Record<string, string>; canOperate: boolean; onDone: () => void; chantierId: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [notes, setNotes] = useState("");
+  const [statut, setStatut] = useState<"terminee" | "bloquee">("terminee");
+  const [saving, setSaving] = useState(false);
+
+  const close = async () => {
+    setSaving(true);
+    const { error } = await supabase.from("interventions").update({
+      photos_apres: photos, notes: notes.trim() || iv.notes,
+      statut: statut as any, heure_fermeture: new Date().toISOString(),
+    } as any).eq("id", iv.id);
+    if (error) { setSaving(false); return toast.error(error.message); }
+    if (iv.demande_id) {
+      await supabase.from("demandes_acces").update({ statut: "terminee" as any }).eq("id", iv.demande_id);
+    }
+    const newLogementStatut = statut === "bloquee" ? "bloque" : "sortie_a_controler";
+    await supabase.from("logements").update({ statut: newLogementStatut as any }).eq("id", iv.logement_id);
+    if (iv.trousseau_id) {
+      await supabase.from("mouvements_cles").insert({
+        trousseau_id: iv.trousseau_id, type: "restitution" as any,
+        logement_id: iv.logement_id, note: `Fin intervention ${iv.id}`,
+      } as any);
+    }
+    setSaving(false);
+    toast.success("Intervention clôturée");
+    setOpen(false);
+    onDone();
+  };
+
+  const durMin = Math.round((Date.now() - new Date(iv.heure_ouverture).getTime()) / 60000);
+
+  return (
+    <div className="flex items-center justify-between border rounded p-2">
+      <div className="text-sm">
+        <div className="font-medium">Logement {logements[iv.logement_id] ?? "—"}</div>
+        <div className="text-xs text-muted-foreground">
+          Ouverte {new Date(iv.heure_ouverture).toLocaleString("fr-FR")} · {durMin} min · {iv.photos_avant.length} photo(s) avant
+        </div>
+      </div>
+      {canOperate && (
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild><Button size="sm" variant="outline"><StopCircle className="size-4 mr-1" /> Clôturer</Button></DialogTrigger>
+          <DialogContent className="max-w-lg">
+            <DialogHeader><DialogTitle>Assistant de sortie</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <PhotoUploader paths={photos} onChange={setPhotos} chantierId={chantierId} label="Photos après intervention" />
+              <div>
+                <Label>Notes de sortie</Label>
+                <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} maxLength={500} />
+              </div>
+              <div>
+                <Label>Résultat</Label>
+                <Select value={statut} onValueChange={(v) => setStatut(v as any)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="terminee">Terminée normalement</SelectItem>
+                    <SelectItem value="bloquee"><span className="flex items-center gap-1"><AlertTriangle className="size-3" />Bloquée / anomalie</span></SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setOpen(false)}>Annuler</Button>
+              <Button onClick={close} disabled={saving}>Clôturer</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
   );
 }
