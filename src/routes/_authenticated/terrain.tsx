@@ -13,7 +13,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Clock, LogIn, LogOut, AlertTriangle, MapPin, ImagePlus, X, Loader2 } from "lucide-react";
+import { Clock, LogIn, LogOut, AlertTriangle, MapPin, ImagePlus, X, Loader2, CheckCircle2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/terrain")({
   component: TerrainPage,

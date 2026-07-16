@@ -19,7 +19,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Check, X, CheckCircle2, Pencil, Truck, Wrench, Download } from "lucide-react";
+import { Check, X, Pencil, Truck, Wrench, Download } from "lucide-react";
 
 type DemandeMode = "livraison" | "materiel";
 
@@ -350,11 +350,6 @@ function DemandeCard({
             </Button>
           </>
         )}
-        {isConducteur && demande.statut === "acceptee" && (
-          <Button size="sm" variant="outline" className="flex-1" onClick={() => updateStatut("terminee")}>
-            <CheckCircle2 className="size-4" /> Clore
-          </Button>
-        )}
         {isOwner && demande.statut === "modifiee" && (
           <Button size="sm" variant="default" className="flex-1" onClick={() => updateStatut("acceptee")}>
             <Check className="size-4" /> Accepter la proposition
@@ -439,11 +434,6 @@ function DemandeRow({
                 <X className="size-4" /> Refuser
               </Button>
             </>
-          )}
-          {isConducteur && demande.statut === "acceptee" && (
-            <Button size="sm" variant="outline" onClick={() => updateStatut("terminee")}>
-              <CheckCircle2 className="size-4" /> Clore
-            </Button>
           )}
           {isOwner && demande.statut === "modifiee" && (
             <Button size="sm" variant="default" onClick={() => updateStatut("acceptee")}>
