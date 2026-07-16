@@ -20,7 +20,7 @@ type Profile = { id: string; email: string; full_name: string | null; company: s
 type RoleRow = { user_id: string; role: AppRole };
 type Entreprise = { id: string; nom: string };
 
-const ALL_ROLES: AppRole[] = ["admin", "conducteur", "prestataire", "operateur"];
+const ALL_ROLES: AppRole[] = ["admin", "conducteur", "prestataire", "operateur", "gestionnaire_cles"];
 
 export const Route = createFileRoute("/_authenticated/admin/users")({
   component: AdminUsersPage,
