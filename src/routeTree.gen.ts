@@ -19,11 +19,18 @@ import { Route as AuthenticatedTerrainRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedStatistiquesRouteImport } from './routes/_authenticated/statistiques'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedPlanningRouteImport } from './routes/_authenticated/planning'
+import { Route as AuthenticatedInformationsRouteImport } from './routes/_authenticated/informations'
 import { Route as AuthenticatedDemandesRouteImport } from './routes/_authenticated/demandes'
 import { Route as AuthenticatedDechetsRouteImport } from './routes/_authenticated/dechets'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedClesRouteImport } from './routes/_authenticated/cles'
 import { Route as AuthenticatedChantiersRouteImport } from './routes/_authenticated/chantiers'
+import { Route as AuthenticatedInformationsIndexRouteImport } from './routes/_authenticated/informations.index'
+import { Route as AuthenticatedInformationsParametresRouteImport } from './routes/_authenticated/informations.parametres'
+import { Route as AuthenticatedInformationsNouvelleRouteImport } from './routes/_authenticated/informations.nouvelle'
+import { Route as AuthenticatedInformationsArchivesRouteImport } from './routes/_authenticated/informations.archives'
+import { Route as AuthenticatedInformationsActivesRouteImport } from './routes/_authenticated/informations.actives'
+import { Route as AuthenticatedInformationsIdRouteImport } from './routes/_authenticated/informations.$id'
 import { Route as AuthenticatedChantiersIdRouteImport } from './routes/_authenticated/chantiers.$id'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
 import { Route as AuthenticatedAdminEntreprisesRouteImport } from './routes/_authenticated/admin/entreprises'
@@ -78,6 +85,12 @@ const AuthenticatedPlanningRoute = AuthenticatedPlanningRouteImport.update({
   path: '/planning',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedInformationsRoute =
+  AuthenticatedInformationsRouteImport.update({
+    id: '/informations',
+    path: '/informations',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedDemandesRoute = AuthenticatedDemandesRouteImport.update({
   id: '/demandes',
   path: '/demandes',
@@ -103,6 +116,42 @@ const AuthenticatedChantiersRoute = AuthenticatedChantiersRouteImport.update({
   path: '/chantiers',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedInformationsIndexRoute =
+  AuthenticatedInformationsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedInformationsRoute,
+  } as any)
+const AuthenticatedInformationsParametresRoute =
+  AuthenticatedInformationsParametresRouteImport.update({
+    id: '/parametres',
+    path: '/parametres',
+    getParentRoute: () => AuthenticatedInformationsRoute,
+  } as any)
+const AuthenticatedInformationsNouvelleRoute =
+  AuthenticatedInformationsNouvelleRouteImport.update({
+    id: '/nouvelle',
+    path: '/nouvelle',
+    getParentRoute: () => AuthenticatedInformationsRoute,
+  } as any)
+const AuthenticatedInformationsArchivesRoute =
+  AuthenticatedInformationsArchivesRouteImport.update({
+    id: '/archives',
+    path: '/archives',
+    getParentRoute: () => AuthenticatedInformationsRoute,
+  } as any)
+const AuthenticatedInformationsActivesRoute =
+  AuthenticatedInformationsActivesRouteImport.update({
+    id: '/actives',
+    path: '/actives',
+    getParentRoute: () => AuthenticatedInformationsRoute,
+  } as any)
+const AuthenticatedInformationsIdRoute =
+  AuthenticatedInformationsIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedInformationsRoute,
+  } as any)
 const AuthenticatedChantiersIdRoute =
   AuthenticatedChantiersIdRouteImport.update({
     id: '/$id',
@@ -132,6 +181,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/dechets': typeof AuthenticatedDechetsRoute
   '/demandes': typeof AuthenticatedDemandesRoute
+  '/informations': typeof AuthenticatedInformationsRouteWithChildren
   '/planning': typeof AuthenticatedPlanningRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/statistiques': typeof AuthenticatedStatistiquesRoute
@@ -139,6 +189,12 @@ export interface FileRoutesByFullPath {
   '/admin/entreprises': typeof AuthenticatedAdminEntreprisesRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/chantiers/$id': typeof AuthenticatedChantiersIdRoute
+  '/informations/$id': typeof AuthenticatedInformationsIdRoute
+  '/informations/actives': typeof AuthenticatedInformationsActivesRoute
+  '/informations/archives': typeof AuthenticatedInformationsArchivesRoute
+  '/informations/nouvelle': typeof AuthenticatedInformationsNouvelleRoute
+  '/informations/parametres': typeof AuthenticatedInformationsParametresRoute
+  '/informations/': typeof AuthenticatedInformationsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -158,6 +214,12 @@ export interface FileRoutesByTo {
   '/admin/entreprises': typeof AuthenticatedAdminEntreprisesRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/chantiers/$id': typeof AuthenticatedChantiersIdRoute
+  '/informations/$id': typeof AuthenticatedInformationsIdRoute
+  '/informations/actives': typeof AuthenticatedInformationsActivesRoute
+  '/informations/archives': typeof AuthenticatedInformationsArchivesRoute
+  '/informations/nouvelle': typeof AuthenticatedInformationsNouvelleRoute
+  '/informations/parametres': typeof AuthenticatedInformationsParametresRoute
+  '/informations': typeof AuthenticatedInformationsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -172,6 +234,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/dechets': typeof AuthenticatedDechetsRoute
   '/_authenticated/demandes': typeof AuthenticatedDemandesRoute
+  '/_authenticated/informations': typeof AuthenticatedInformationsRouteWithChildren
   '/_authenticated/planning': typeof AuthenticatedPlanningRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/statistiques': typeof AuthenticatedStatistiquesRoute
@@ -179,6 +242,12 @@ export interface FileRoutesById {
   '/_authenticated/admin/entreprises': typeof AuthenticatedAdminEntreprisesRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/chantiers/$id': typeof AuthenticatedChantiersIdRoute
+  '/_authenticated/informations/$id': typeof AuthenticatedInformationsIdRoute
+  '/_authenticated/informations/actives': typeof AuthenticatedInformationsActivesRoute
+  '/_authenticated/informations/archives': typeof AuthenticatedInformationsArchivesRoute
+  '/_authenticated/informations/nouvelle': typeof AuthenticatedInformationsNouvelleRoute
+  '/_authenticated/informations/parametres': typeof AuthenticatedInformationsParametresRoute
+  '/_authenticated/informations/': typeof AuthenticatedInformationsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -193,6 +262,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/dechets'
     | '/demandes'
+    | '/informations'
     | '/planning'
     | '/profile'
     | '/statistiques'
@@ -200,6 +270,12 @@ export interface FileRouteTypes {
     | '/admin/entreprises'
     | '/admin/users'
     | '/chantiers/$id'
+    | '/informations/$id'
+    | '/informations/actives'
+    | '/informations/archives'
+    | '/informations/nouvelle'
+    | '/informations/parametres'
+    | '/informations/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -219,6 +295,12 @@ export interface FileRouteTypes {
     | '/admin/entreprises'
     | '/admin/users'
     | '/chantiers/$id'
+    | '/informations/$id'
+    | '/informations/actives'
+    | '/informations/archives'
+    | '/informations/nouvelle'
+    | '/informations/parametres'
+    | '/informations'
   id:
     | '__root__'
     | '/'
@@ -232,6 +314,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/dechets'
     | '/_authenticated/demandes'
+    | '/_authenticated/informations'
     | '/_authenticated/planning'
     | '/_authenticated/profile'
     | '/_authenticated/statistiques'
@@ -239,6 +322,12 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/entreprises'
     | '/_authenticated/admin/users'
     | '/_authenticated/chantiers/$id'
+    | '/_authenticated/informations/$id'
+    | '/_authenticated/informations/actives'
+    | '/_authenticated/informations/archives'
+    | '/_authenticated/informations/nouvelle'
+    | '/_authenticated/informations/parametres'
+    | '/_authenticated/informations/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -322,6 +411,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPlanningRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/informations': {
+      id: '/_authenticated/informations'
+      path: '/informations'
+      fullPath: '/informations'
+      preLoaderRoute: typeof AuthenticatedInformationsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/demandes': {
       id: '/_authenticated/demandes'
       path: '/demandes'
@@ -356,6 +452,48 @@ declare module '@tanstack/react-router' {
       fullPath: '/chantiers'
       preLoaderRoute: typeof AuthenticatedChantiersRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/informations/': {
+      id: '/_authenticated/informations/'
+      path: '/'
+      fullPath: '/informations/'
+      preLoaderRoute: typeof AuthenticatedInformationsIndexRouteImport
+      parentRoute: typeof AuthenticatedInformationsRoute
+    }
+    '/_authenticated/informations/parametres': {
+      id: '/_authenticated/informations/parametres'
+      path: '/parametres'
+      fullPath: '/informations/parametres'
+      preLoaderRoute: typeof AuthenticatedInformationsParametresRouteImport
+      parentRoute: typeof AuthenticatedInformationsRoute
+    }
+    '/_authenticated/informations/nouvelle': {
+      id: '/_authenticated/informations/nouvelle'
+      path: '/nouvelle'
+      fullPath: '/informations/nouvelle'
+      preLoaderRoute: typeof AuthenticatedInformationsNouvelleRouteImport
+      parentRoute: typeof AuthenticatedInformationsRoute
+    }
+    '/_authenticated/informations/archives': {
+      id: '/_authenticated/informations/archives'
+      path: '/archives'
+      fullPath: '/informations/archives'
+      preLoaderRoute: typeof AuthenticatedInformationsArchivesRouteImport
+      parentRoute: typeof AuthenticatedInformationsRoute
+    }
+    '/_authenticated/informations/actives': {
+      id: '/_authenticated/informations/actives'
+      path: '/actives'
+      fullPath: '/informations/actives'
+      preLoaderRoute: typeof AuthenticatedInformationsActivesRouteImport
+      parentRoute: typeof AuthenticatedInformationsRoute
+    }
+    '/_authenticated/informations/$id': {
+      id: '/_authenticated/informations/$id'
+      path: '/$id'
+      fullPath: '/informations/$id'
+      preLoaderRoute: typeof AuthenticatedInformationsIdRouteImport
+      parentRoute: typeof AuthenticatedInformationsRoute
     }
     '/_authenticated/chantiers/$id': {
       id: '/_authenticated/chantiers/$id'
@@ -395,12 +533,41 @@ const AuthenticatedChantiersRouteWithChildren =
     AuthenticatedChantiersRouteChildren,
   )
 
+interface AuthenticatedInformationsRouteChildren {
+  AuthenticatedInformationsIdRoute: typeof AuthenticatedInformationsIdRoute
+  AuthenticatedInformationsActivesRoute: typeof AuthenticatedInformationsActivesRoute
+  AuthenticatedInformationsArchivesRoute: typeof AuthenticatedInformationsArchivesRoute
+  AuthenticatedInformationsNouvelleRoute: typeof AuthenticatedInformationsNouvelleRoute
+  AuthenticatedInformationsParametresRoute: typeof AuthenticatedInformationsParametresRoute
+  AuthenticatedInformationsIndexRoute: typeof AuthenticatedInformationsIndexRoute
+}
+
+const AuthenticatedInformationsRouteChildren: AuthenticatedInformationsRouteChildren =
+  {
+    AuthenticatedInformationsIdRoute: AuthenticatedInformationsIdRoute,
+    AuthenticatedInformationsActivesRoute:
+      AuthenticatedInformationsActivesRoute,
+    AuthenticatedInformationsArchivesRoute:
+      AuthenticatedInformationsArchivesRoute,
+    AuthenticatedInformationsNouvelleRoute:
+      AuthenticatedInformationsNouvelleRoute,
+    AuthenticatedInformationsParametresRoute:
+      AuthenticatedInformationsParametresRoute,
+    AuthenticatedInformationsIndexRoute: AuthenticatedInformationsIndexRoute,
+  }
+
+const AuthenticatedInformationsRouteWithChildren =
+  AuthenticatedInformationsRoute._addFileChildren(
+    AuthenticatedInformationsRouteChildren,
+  )
+
 interface AuthenticatedRouteChildren {
   AuthenticatedChantiersRoute: typeof AuthenticatedChantiersRouteWithChildren
   AuthenticatedClesRoute: typeof AuthenticatedClesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDechetsRoute: typeof AuthenticatedDechetsRoute
   AuthenticatedDemandesRoute: typeof AuthenticatedDemandesRoute
+  AuthenticatedInformationsRoute: typeof AuthenticatedInformationsRouteWithChildren
   AuthenticatedPlanningRoute: typeof AuthenticatedPlanningRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedStatistiquesRoute: typeof AuthenticatedStatistiquesRoute
@@ -415,6 +582,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDechetsRoute: AuthenticatedDechetsRoute,
   AuthenticatedDemandesRoute: AuthenticatedDemandesRoute,
+  AuthenticatedInformationsRoute: AuthenticatedInformationsRouteWithChildren,
   AuthenticatedPlanningRoute: AuthenticatedPlanningRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedStatistiquesRoute: AuthenticatedStatistiquesRoute,
