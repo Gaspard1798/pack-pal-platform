@@ -1101,6 +1101,225 @@ export type Database = {
           },
         ]
       }
+      publication_categories: {
+        Row: {
+          chantier_id: string | null
+          created_at: string
+          icone: string
+          id: string
+          is_default: boolean
+          nom: string
+          ordre: number
+        }
+        Insert: {
+          chantier_id?: string | null
+          created_at?: string
+          icone?: string
+          id?: string
+          is_default?: boolean
+          nom: string
+          ordre?: number
+        }
+        Update: {
+          chantier_id?: string | null
+          created_at?: string
+          icone?: string
+          id?: string
+          is_default?: boolean
+          nom?: string
+          ordre?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publication_categories_chantier_id_fkey"
+            columns: ["chantier_id"]
+            isOneToOne: false
+            referencedRelation: "chantiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      publication_entreprises: {
+        Row: {
+          entreprise_id: string
+          publication_id: string
+        }
+        Insert: {
+          entreprise_id: string
+          publication_id: string
+        }
+        Update: {
+          entreprise_id?: string
+          publication_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publication_entreprises_entreprise_id_fkey"
+            columns: ["entreprise_id"]
+            isOneToOne: false
+            referencedRelation: "entreprises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "publication_entreprises_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "publications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      publication_pieces_jointes: {
+        Row: {
+          created_at: string
+          id: string
+          mime_type: string | null
+          nom: string
+          publication_id: string
+          storage_path: string
+          taille: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          nom: string
+          publication_id: string
+          storage_path: string
+          taille?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          nom?: string
+          publication_id?: string
+          storage_path?: string
+          taille?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publication_pieces_jointes_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "publications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      publication_settings: {
+        Row: {
+          chantier_id: string
+          couleurs_priorite: Json
+          duree_validite_defaut_jours: number
+          modeles: Json
+          updated_at: string
+        }
+        Insert: {
+          chantier_id: string
+          couleurs_priorite?: Json
+          duree_validite_defaut_jours?: number
+          modeles?: Json
+          updated_at?: string
+        }
+        Update: {
+          chantier_id?: string
+          couleurs_priorite?: Json
+          duree_validite_defaut_jours?: number
+          modeles?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publication_settings_chantier_id_fkey"
+            columns: ["chantier_id"]
+            isOneToOne: true
+            referencedRelation: "chantiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      publications: {
+        Row: {
+          auteur_id: string
+          category_id: string | null
+          chantier_id: string
+          corps_etat: string | null
+          created_at: string
+          date_debut: string
+          date_fin: string | null
+          description: string | null
+          destinataires_type: Database["public"]["Enums"]["publication_dest_type"]
+          epingle: boolean
+          id: string
+          priorite: Database["public"]["Enums"]["publication_priorite"]
+          resume: string | null
+          titre: string
+          type: string
+          updated_at: string
+          zone_libre: string | null
+          zone_ref_id: string | null
+          zone_type: Database["public"]["Enums"]["publication_zone_type"]
+        }
+        Insert: {
+          auteur_id: string
+          category_id?: string | null
+          chantier_id: string
+          corps_etat?: string | null
+          created_at?: string
+          date_debut?: string
+          date_fin?: string | null
+          description?: string | null
+          destinataires_type?: Database["public"]["Enums"]["publication_dest_type"]
+          epingle?: boolean
+          id?: string
+          priorite?: Database["public"]["Enums"]["publication_priorite"]
+          resume?: string | null
+          titre: string
+          type?: string
+          updated_at?: string
+          zone_libre?: string | null
+          zone_ref_id?: string | null
+          zone_type?: Database["public"]["Enums"]["publication_zone_type"]
+        }
+        Update: {
+          auteur_id?: string
+          category_id?: string | null
+          chantier_id?: string
+          corps_etat?: string | null
+          created_at?: string
+          date_debut?: string
+          date_fin?: string | null
+          description?: string | null
+          destinataires_type?: Database["public"]["Enums"]["publication_dest_type"]
+          epingle?: boolean
+          id?: string
+          priorite?: Database["public"]["Enums"]["publication_priorite"]
+          resume?: string | null
+          titre?: string
+          type?: string
+          updated_at?: string
+          zone_libre?: string | null
+          zone_ref_id?: string | null
+          zone_type?: Database["public"]["Enums"]["publication_zone_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publications_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "publication_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "publications_chantier_id_fkey"
+            columns: ["chantier_id"]
+            isOneToOne: false
+            referencedRelation: "chantiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rotation_validations: {
         Row: {
           commentaire: string | null
@@ -1468,6 +1687,20 @@ export type Database = {
         | "declaration_perte"
         | "declaration_endommagement"
         | "inventaire"
+      publication_dest_type:
+        | "toutes"
+        | "entreprises"
+        | "corps_etat"
+        | "fournisseurs"
+        | "transporteurs"
+        | "equipes_internes"
+      publication_priorite: "information" | "important" | "urgent"
+      publication_zone_type:
+        | "chantier"
+        | "batiment"
+        | "bloc"
+        | "niveau"
+        | "zone_libre"
       rotation_operation: "pose" | "rotation" | "enlevement"
       rotation_statut:
         | "en_cours"
@@ -1670,6 +1903,22 @@ export const Constants = {
         "declaration_perte",
         "declaration_endommagement",
         "inventaire",
+      ],
+      publication_dest_type: [
+        "toutes",
+        "entreprises",
+        "corps_etat",
+        "fournisseurs",
+        "transporteurs",
+        "equipes_internes",
+      ],
+      publication_priorite: ["information", "important", "urgent"],
+      publication_zone_type: [
+        "chantier",
+        "batiment",
+        "bloc",
+        "niveau",
+        "zone_libre",
       ],
       rotation_operation: ["pose", "rotation", "enlevement"],
       rotation_statut: [
