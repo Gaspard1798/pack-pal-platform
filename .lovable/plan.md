@@ -1,56 +1,76 @@
+## Module "Informations Chantier"
 
-# ChantierFlow — Plateforme logistique de chantier
+Nouveau module de diffusion d'informations générales (broadcast one-way) pour les intervenants d'un chantier. Consultation seule côté entreprises, création réservée aux conducteurs/chefs de chantier/admins.
 
-Application web pour planifier et coordonner les livraisons/extractions sur chantier, en évitant les conflits d'aires et de matériel.
+### 1. Base de données (migration)
 
-## Rôles utilisateurs (V1)
+Nouvelles tables :
 
-- **Conducteur de travaux / Responsable logistique** : crée le chantier, configure aires + matériel, valide/refuse/modifie les demandes, gère les imprévus, consulte les comptes-rendus.
-- **Prestataire** (transporteur, fournisseur) : consulte les chantiers partagés, fait des demandes de créneaux, suit leurs statuts.
-- **Opérateur terrain** : check-in à l'arrivée du camion, déclare non-conformités, clôture la venue.
-- **Administrateur** : gestion globale des utilisateurs et chantiers.
+- `publication_categories` — catégories modifiables (nom, icône, ordre). Pré-remplie avec les 16 catégories du cahier des charges.
+- `publications` — table principale :
+  - `chantier_id`, `auteur_id`, `titre`, `description` (HTML), `resume` (texte court)
+  - `category_id`, `priorite` (enum: `information` | `important` | `urgent`)
+  - `zone_type` (`chantier` | `batiment` | `bloc` | `niveau` | `zone_libre`), `zone_ref_id` (uuid nullable), `zone_libre` (texte)
+  - `destinataires_type` (`toutes` | `entreprises` | `corps_etat` | `fournisseurs` | `transporteurs` | `equipes_internes`)
+  - `date_debut`, `date_fin` (nullable), `epingle` (bool)
+  - `archivee` (bool, calculée automatiquement par date_fin passée)
+- `publication_entreprises` — join table (publication_id, entreprise_id) pour ciblage multi-entreprises
+- `publication_pieces_jointes` — (publication_id, nom, url, mime_type, taille)
+- `publication_settings` — chantier_id, durees_validite_defaut, couleurs_priorite (JSON), modeles (JSON)
 
-## Modules V1
+Politiques RLS :
+- SELECT : membres du chantier + admins ; pour entreprises, filtre supplémentaire sur destinataires
+- INSERT/UPDATE/DELETE : conducteur du chantier + admin
 
-1. **Auth + invitations** (email/mot de passe via Lovable Cloud) — rôles stockés dans `user_roles`.
-2. **Chantiers** : création, paramétrage des aires de livraison et du matériel disponible.
-3. **Demandes de créneaux** : formulaire prestataire (date/heure, aire, nature, quantité, matériel, durée).
-4. **Planning** : vue calendrier/timeline par jour avec swimlanes Aires + Matériel ; détection visuelle des conflits.
-5. **Workflow de statuts** : `en cours` → `acceptée` / `refusée` / `modifiée` → `terminée` (+ commentaires).
-6. **Vue terrain** : check-in arrivée, non-conformité (retard, erreur, manquant), photos optionnelles.
-7. **Dashboard** par rôle avec KPIs (demandes en attente, conflits, retards).
+Trigger : notifications automatiques aux membres concernés à la création (réutilise table `notifications` existante).
 
-## Architecture technique
+Nouveau bucket storage : `publication-attachments` (privé, RLS par chantier).
 
-- **Frontend** : TanStack Start (déjà en place), Tailwind, shadcn/ui, sidebar par rôle.
-- **Backend** : Lovable Cloud (Postgres + RLS + Auth).
-- **Tables principales** :
-  ```
-  profiles, user_roles
-  chantiers, chantier_members (rattachement prestataires)
-  aires (chantier_id, nom, capacité)
-  materiels (chantier_id, nom, type, quantité)
-  demandes (chantier_id, prestataire_id, aire_id, début, fin, statut, nature, quantité, durée_min)
-  demande_materiels (demande_id, materiel_id)
-  venues (demande_id, arrivée_réelle, départ_réel, non_conformités[], commentaire)
-  ```
-- **RLS** : prestataires voient leurs demandes + chantiers partagés ; conducteurs voient tout sur leurs chantiers.
-- **Détection de conflits** : fonction SQL qui vérifie les overlaps sur aires/matériels à la validation.
+### 2. Routes
 
-## Design
+Ajout d'une nouvelle entrée dans la sidebar "Informations" avec sous-navigation :
 
-Direction visuelle "chantier pro" : palette neutre + accent orange sécurité, typographie sans-serif technique (Inter/Space Grotesk), composants denses orientés data (tableaux, timelines, badges de statut colorés). Layout sidebar + header avec switch de chantier actif.
+- `/informations` — tableau de bord (KPIs, épinglées, dernières, recherche rapide)
+- `/informations/actives` — fil d'actualité (cartes chronologiques + filtres)
+- `/informations/archives` — publications expirées
+- `/informations/nouvelle` — formulaire de création (éditeur riche, upload multiple)
+- `/informations/$id` — vue détaillée d'une publication
+- `/informations/parametres` — gestion catégories/couleurs/modèles/durées
 
-## Livraison par étapes
+Toutes sous `_authenticated/informations.*`.
 
-**Étape 1 (cette itération)** : design system + auth + structure des routes + tables de base + dashboard vide par rôle.
-**Étape 2** : CRUD chantiers, aires, matériel.
-**Étape 3** : formulaire demande prestataire + liste/filtres + workflow statuts.
-**Étape 4** : vue planning avec détection de conflits.
-**Étape 5** : vue terrain + non-conformités + KPIs.
+### 3. Composants clés
 
-## Questions ouvertes
+- `PublicationCard` — carte du fil (icône catégorie, bandeau couleur priorité, méta, badge pièces jointes)
+- `PublicationForm` — formulaire multi-sections avec `react-quill` (ou textarea + markdown si conflit Worker) pour la description
+- `PublicationDetail` — vue lecture avec galerie images et téléchargement docs
+- `UrgentBanner` — bannière rouge globale dans `__root.tsx` si publications urgentes actives non lues
+- `CategoryPicker`, `PriorityBadge`, `ZoneSelector`, `DestinatairesSelector`
 
-- Confirmez-vous le périmètre V1 (étape 1) pour démarrer ?
-- Préférez-vous Sign in with Google en plus de l'email/mot de passe ?
-- Une charte graphique imposée (couleurs/logo Gaspard Penchenat) ou je propose une direction ?
+### 4. Notifications
+
+À la création d'une publication, trigger DB insère dans `notifications` pour chaque utilisateur des entreprises destinataires (ou tous les membres du chantier). Le composant `NotificationBell` existant les affiche.
+
+### 5. Architecture évolutive
+
+- Table `publications` conçue pour recevoir plus tard des tables filles `publication_commentaires`, `publication_taches`.
+- Colonne `type` réservée pour distinguer futurs types (publication/tâche/discussion).
+
+### 6. Design
+
+Cohérent avec le style Fluxop actuel (shadcn + tokens). Codes couleur priorité via variables CSS sémantiques :
+- Information : neutre (muted)
+- Important : orange/amber
+- Urgent : rouge (destructive)
+
+Cartes empilables verticalement sur mobile, tableau élargi sur desktop.
+
+### Étapes de livraison
+
+1. Migration DB (tables, RLS, trigger notifications, bucket storage)
+2. Sidebar + routes squelettes + tableau de bord
+3. Formulaire de création + upload pièces jointes + éditeur riche
+4. Fil actives + détail + filtres/recherche
+5. Archives + paramètres + bannière urgente
+
+Je démarre par la migration une fois le plan approuvé.
